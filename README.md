@@ -1,82 +1,84 @@
-# 📱 Mobile Python AI Editor
 
-スマートフォンやタブレットのブラウザ上で快適にPythonコーディングができる、AIアシスト搭載のブラウザ完結型軽量エディタです。
-サーバーの構築は一切不要。HTMLファイルをブラウザで開くだけで、本格的なPythonの実行からAIによるコード自動生成までを体験できます。
 
-![HTML/JS/CSS](https://img.shields.io/badge/Made%20with-HTML%2FJS%2FCSS-f0db4f?style=flat-square&logo=javascript)
-![Pyodide](https://img.shields.io/badge/Python-Pyodide-3776AB?style=flat-square&logo=python)
-![CodeMirror](https://img.shields.io/badge/Editor-CodeMirror-D33115?style=flat-square)
+# 📱 Mobile Python & AI Editor
 
-## ✨ 主な特徴 (Features)
+[![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=flat&logo=html5&logoColor=white)](https://developer.mozilla.org/en-US/docs/Web/Guide/HTML/HTML5)
+[![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=flat&logo=javascript&logoColor=black)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
+[![Python](https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)
+[![Pyodide](https://img.shields.io/badge/Pyodide-WebAssembly-blue)](https://pyodide.org/)
+[![CodeMirror](https://img.shields.io/badge/CodeMirror-5.65-brightgreen)](https://codemirror.net/5/)
 
-* 🚀 **サーバーレスPython実行環境**
-  * `Pyodide` を搭載し、ブラウザ（WebAssembly）上で直接Pythonコードを実行。
-  * `micropip` を利用した外部パッケージ (`numpy`, `pandas` など) の動的インストールに対応。
-* 🤖 **AIコーディングアシスト**
-  * Gemini API, OpenAI API (GPT-4o), Claude, GrokなどのLLMに対応。
-  * エディタ内に `# AI: 〇〇をして` とコメントを書くだけで、AIがコードを自動生成・挿入。
-* 📱 **モバイル特化のUI/UX**
-  * スマホのソフトウェアキーボードでのコーディング苦労を軽減する**カスタムツールバー**（インデント、括弧、記号のワンタップ入力）。
-  * エディタ領域の**長押し（ロングタップ）**で、Python予約語 (`def`, `class`, `for` など) を即座に入力できるフローティングメニュー。
-  * 画面消灯を防ぐ Wake Lock API 対応。PWAとしてホーム画面への追加も可能。
-* 📁 **強力なワークスペースとファイル管理**
-  * 複数ファイルのタブ切り替えに対応。
-  * **File System Access API (FSAA)** に対応しており、端末のローカルフォルダを直接マウントして編集可能。
-  * IndexedDBによる自動バックアップと、ZIP形式でのプロジェクト全体のエクスポート/インポート機能。
-* ⚙️ **本格的な開発サポート**
-  * `Black` フォーマッタを利用したPEP8準拠のコード自動整形機能。
-  * 実行前に自動で読み込まれる `.env` (環境変数) および `requirements.txt` (pipパッケージ) のGUI設定機能。
+**Mobile Python & AI Editor** は、スマートフォンなどのモバイル端末に最適化された、ブラウザだけで完結するPython開発環境です。サーバー構築は一切不要で、WebAssembly (Pyodide) を用いてブラウザ上でPythonコードを直接実行します。さらに、AIAPIと連携してコードの自動生成を強力にサポートします。
 
----
+## ✨ 主な機能
 
-## 🚀 使い方 (Usage)
+*   **⚡️ ブラウザでネイティブ実行 (Pyodide)**
+    *   サーバー不要。WebAssemblyを通じてブラウザ上で安全かつ高速にPythonコードを実行。
+    *   標準出力・標準エラー出力のエディタ内表示。
+    *   `micropip` を用いた外部パッケージの自動インストールに対応。
+*   **🤖 AIコーディングアシスタント**
+    *   Gemini, OpenAI (GPT-4o), Claude, Grokなど、各種生成AI APIに対応。
+    *   エディタ内に `# AI: 1から10まで足す関数` と書いてボタンを押すだけでコードを自動生成。
+*   **📱 モバイルファーストUI**
+    *   ソフトウェアキーボードでの入力負担を減らす**スニペットボタン**（括弧やクォーテーションの自動補完）。
+    *   エディタ長押しで起動する**フローティングキーワードメニュー**（`def`, `class`, `import` などの一発入力）。
+*   **📁 強力なファイルマネジメント**
+    *   IndexedDBによるブラウザ内での仮想ワークスペース保存。
+    *   **File System Access API (FSAA)** 対応。端末のローカルフォルダを直接開き、エディタとして使用可能。
+    *   ファイルツリー構造、タブ管理、ZIPでの一括エクスポート/インポート。
+*   **🛠️ 充実の開発ツール**
+    *   CodeMirrorによるシンタックスハイライト（Darculaテーマ）、オートコンプリート。
+    *   PEP8準拠のコード自動整形機能（内部で `black` を実行）。
+    *   環境変数 (`.env`) および `requirements.txt` の設定パネル。
+
+## 🚀 使い方
 
 ### 1. 起動方法
-サーバーや環境構築は不要です。提供されているHTMLファイルをダウンロードし、ChromeやSafariなどの最新のWebブラウザで開くだけで起動します。
+このプロジェクトは単一のHTMLファイルで構成されています。
+`index.html`（ファイル名）をブラウザで開くだけで、すぐにエディタが起動します。ネット上にホスティングするだけでPWA（プログレッシブウェブアプリ）としても動作します。
 
-### 2. コードを書く・実行する
-1. エディタ領域にPythonコードを入力します。
-2. 画面下部の **「▶ 実行する」** ボタンをタップすると、コードが評価され、下部のコンソールに標準出力やエラーが表示されます。
+### 2. Pythonコードの実行
+1. サイドバー（📁アイコン）を開き、`main.py` にコードを記述します。
+2. 画面下部の **「▶ 実行する」** ボタンをタップします。
+3. コードがPyodide上で実行され、結果が下部の黒いコンソール領域に出力されます。
 
-### 3. モバイル特化の入力補助を使う
-* **ツールバー**: 画面上部のボタン群から `()`, `[]`, `""`, `:` などをワンタップで入力・あるいは選択範囲を囲むことができます。
-* **長押しメニュー**: エディタのコード入力欄を**約0.5秒長押し**すると、予約語入力用のフローティングメニューが出現します。
+### 3. AIにコードを書かせる
+AI機能を使用するには、まず設定画面でAPIキーを登録してください。
 
-### 4. AIアシスタントを利用する
-1. 画面右上の **「⚙️ 設定」** ボタンを開き、「AI設定」タブからご利用のモデル（例: `gemini-2.5-flash`）を選択し、**APIキー**を入力して保存します（キーはブラウザ内に安全にローカル保存されます）。
-2. エディタ内で `# AI: 1から10まで足して出力するコード` のようにコメントを記述します。
-3. 画面下部の **「✨ AIに頼む」** ボタンをタップすると、指示した箇所にAIがコードを生成・挿入します。上部のプロンプト入力欄から全体的な指示を出すことも可能です。
+**方法 A: 入力欄から指示**
+上部のプロンプト入力欄に「〇〇をするコードを書いて」と入力し、「✨ AIに頼む」ボタンを押します。
 
----
+**方法 B: エディタ内にコメントで指示**
+エディタ内の任意の行に `# AI: 〇〇をする処理` と記述し、「✨ AIに頼む」ボタンを押すと、その行の下にAIが生成したコードが挿入されます。
+
+### 4. モバイル専用ジェスチャー
+*   **スワイプ**: 上部のツールバーやタブは横スクロールに対応しています。
+*   **長押し**: エディタ画面を長押し（0.5秒）すると、Pythonの予約語をワンタップで入力できるメニューが表示されます。
 
 ## ⚙️ 設定 (Settings)
 
-設定パネル（画面右上の歯車アイコン）から以下のカスタマイズが可能です。
+画面右上の「⚙️」アイコンからシステム設定を開くことができます。すべての設定はブラウザのローカル（IndexedDB）に安全に保存されます。
 
-* **AI設定**: モデルの選択、カスタムモデル名の指定、APIキーの設定、AIへのシステムプロンプト（役割定義）の設定。
-* **pip**: 実行前にインストールしておきたいライブラリ（`requests`, `beautifulsoup4` など）を1行ずつ記述します。実行時に自動でインストールされます。
-* **.env**: `API_KEY=your_secret_key` のような形式で記述すると、Python実行時に `os.environ` に展開されます。セキュアなコードテストに最適です。
-* **データ管理**: ローカルフォルダのマウント、ZIPファイルでのプロジェクト保存、過去のAI履歴データの初期化が行えます。
+| タブ | 設定内容 |
+| :--- | :--- |
+| **AI設定** | 使用するAIモデルの選択、APIキーの入力、システムプロンプトのカスタマイズ。 |
+| **pip** | 実行前に自動でインストールしたいPythonパッケージを改行区切りで指定。 |
+| **.env** | `KEY=VALUE` 形式で記述すると、Python実行時に `os.environ` にロードされます。 |
+| **データ管理** | ローカルフォルダの読み込み(FSAA)、プロジェクトのZIP保存、読み込み。 |
 
----
+## 💻 技術スタック
 
-## 🛠 技術スタック (Tech Stack)
+*   **フロントエンド**: HTML5, CSS3 (CSS Variables, Flexbox/Grid), Vanilla JavaScript
+*   **エディタエンジン**: [CodeMirror 5](https://codemirror.net/5/)
+*   **Pythonランタイム**: [Pyodide](https://pyodide.org/) (v0.25.0)
+*   **ファイル操作**: [JSZip](https://stuk.github.io/jszip/), File System Access API, IndexedDB
+*   **AI連携**: Fetch API を使用した各社 LLM REST API への直接通信
 
-このプロジェクトは、フロントエンドの標準技術と強力なOSSライブラリを組み合わせて単一のHTMLファイルで構築されています。
+## ⚠️ 注意事項
 
-* **HTML5 / CSS3 / Vanilla JavaScript** (フレームワーク非依存)
-* **[CodeMirror 5](https://codemirror.net/5/)**: コードエディタ（シンタックスハイライト、補完、検索・置換）
-* **[Pyodide](https://pyodide.org/)**: CPythonのWebAssemblyポート（Python実行環境）
-* **[JSZip](https://stuk.github.io/jszip/)**: プロジェクトのZIP圧縮・解凍
-* **IndexedDB**: 設定ファイルと仮想ファイルシステムのローカル永続化
-* **File System Access API**: ローカルディレクトリへの直接アクセス機能
-
----
-
-## ⚠️ 注意事項と制限事項
-
-* **ブラウザの対応状況**: ローカルフォルダ連携 (FSAA) は、Chrome や Edge などの対応ブラウザでのみ動作します。iOS Safari等では仮想ファイルシステムとZIPエクスポート機能をご利用ください。
-* **通信環境**: 初回起動時や新しいpipパッケージのインストール時には、Pyodide関連ファイルのダウンロードのためインターネット接続が必要です。
-* **AIの利用**: API呼び出しには外部通信が発生します。APIキーの取り扱い（利用制限や課金状況）には十分ご注意ください。
+*   **APIキーの管理**: 入力されたAPIキーはブラウザのローカルデータベース(IndexedDB)にのみ保存され、外部のサーバーには送信されません（設定したAIプロバイダーのAPIエンドポイントへは直接送信されます）。
+*   **ローカルフォルダへのアクセス (FSAA)**: File System Access APIは、Safariや一部のモバイルブラウザでは完全にサポートされていない場合があります。その場合は自動的に仮想ファイルシステムにフォールバックします。
+*   **初回実行時の通信**: PyodideコアやPythonパッケージ（`micropip`等）は初回実行時にCDNからダウンロードされるため、初期化にはインターネット接続と数秒の時間がかかります。
 
 ---
+*Created for Mobile Coders & AI Enthusiasts.*
