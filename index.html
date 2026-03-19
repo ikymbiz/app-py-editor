@@ -2,14 +2,30 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href='data:application/manifest+json,{"name":"AI Python Editor","short_name":"AI Editor","display":"standalone","background_color":"#1e1e1e","theme_color":"#1e1e1e"}'>
     <title>Mobile Python AI Editor</title>
     
     <!-- CodeMirror (シンタックスハイライト・行番号) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/theme/darcula.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/hint/show-hint.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/dialog/dialog.min.css">
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/python/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/hint/show-hint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/hint/anyword-hint.min.js"></script>
+    
+    <!-- 検索・置換・コメント・自動括弧機能用アドオン -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/search/searchcursor.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/search/search.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/dialog/dialog.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/comment/comment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/edit/closebrackets.min.js"></script>
 
     <!-- Pyodide & JSZip -->
     <script src="https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js"></script>
@@ -22,117 +38,148 @@
             --text-color: #d4d4d4;
             --accent-blue: #007acc;
             --accent-green: #2ea043;
+            --border-color: #444;
         }
         body {
-            margin: 0; padding: 10px;
+            margin: 0; padding: 8px;
             background-color: var(--bg-color); color: var(--text-color);
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             display: flex; flex-direction: column; height: 100dvh; box-sizing: border-box;
-            overflow: hidden;
+            overflow: hidden; /* スマホ画面で全体スクロールさせない全画面表示 */
         }
-        .header-container { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .header-container { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-shrink: 0; }
         h1 { font-size: 16px; margin: 0; color: #fff; text-align: center; flex-grow: 1; }
         .btn-icon { background: none; border: none; font-size: 20px; cursor: pointer; padding: 0; color: #fff; }
-        input[type="text"] {
-            width: 100%; box-sizing: border-box; padding: 12px; margin-bottom: 10px;
-            background-color: var(--panel-bg); color: #fff;
-            border: 1px solid #444; border-radius: 8px; font-size: 14px;
-        }
-        .editor-tools { display: flex; gap: 5px; margin-bottom: 8px; flex-wrap: wrap; }
-        .editor-tools button {
-            flex: 1; min-width: 65px; padding: 8px; font-size: 12px; font-weight: normal;
-            background-color: #444; color: #ddd; border-radius: 4px; border: none; cursor: pointer;
-        }
-        .editor-tools button:active { opacity: 0.8; }
         
-        /* メインレイアウト（サイドバー＋エディタ） */
+        input[type="text"] {
+            width: 100%; box-sizing: border-box; padding: 10px; margin-bottom: 6px;
+            background-color: var(--panel-bg); color: #fff;
+            border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px;
+            flex-shrink: 0;
+        }
+        
+        /* エディタツールバー (2段構成) */
+        .editor-tools-container { display: flex; flex-direction: column; gap: 4px; margin-bottom: 6px; flex-shrink: 0; }
+        .editor-tools { 
+            display: flex; gap: 5px; overflow-x: auto; white-space: nowrap; scrollbar-width: none; padding-bottom: 2px;
+        }
+        .editor-tools::-webkit-scrollbar { display: none; }
+        .editor-tools button {
+            flex-shrink: 0; padding: 6px 12px; font-size: 14px; font-family: monospace; font-weight: bold;
+            background-color: #444; color: #eee; border-radius: 4px; border: none; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .editor-tools button:active { opacity: 0.8; background-color: #555; }
+        .editor-tools button.btn-special { background-color: #385166; color: #fff; font-family: inherit; font-size: 13px;}
+
+        /* メインレイアウト（絶対配置サイドバー＋エディタ） */
         .main-layout {
-            display: flex; flex-grow: 1; overflow: hidden; position: relative; margin-bottom: 10px;
+            display: flex; flex-grow: 1; overflow: hidden; position: relative; margin-bottom: 6px;
         }
+        
+        /* サイドバー（オーバーレイ式） */
         .sidebar {
-            width: 200px; background-color: var(--panel-bg); border: 1px solid #444; border-radius: 8px;
-            margin-right: 10px; display: flex; flex-direction: column; padding: 10px; box-sizing: border-box;
-            transition: transform 0.3s ease; overflow-y: auto;
+            position: absolute; z-index: 100; left: 0; top: 0; height: 100%; transform: translateX(-110%);
+            width: 240px; background-color: var(--panel-bg); border-right: 1px solid var(--border-color);
+            display: flex; flex-direction: column; padding: 10px; box-sizing: border-box;
+            transition: transform 0.3s ease; overflow-y: auto; flex-shrink: 0;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.5);
         }
-        .sidebar button.btn-action {
+        .sidebar.open { transform: translateX(0); }
+        .sidebar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .sidebar-header h3 { font-size: 13px; margin: 0; color: #bbb; }
+        .sidebar-header .btn-icon { color: var(--accent-blue); font-size: 24px; font-weight: bold; }
+        
+        .sidebar button.btn-action, .setting-panel button.btn-action {
             width: 100%; padding: 8px; margin-bottom: 5px; background: #444; color: #fff;
-            border: none; border-radius: 4px; font-size: 12px; cursor: pointer;
+            border: none; border-radius: 4px; font-size: 12px; cursor: pointer; font-weight: bold;
         }
-        .sidebar button.btn-action:hover { background: #555; }
-        .file-tree { margin-top: 10px; flex-grow: 1; overflow-y: auto; }
+        .sidebar button.btn-action:hover, .setting-panel button.btn-action:hover { background: #555; }
+        
+        .file-tree { flex-grow: 1; overflow-y: auto; }
         .file-item {
-            padding: 6px; font-size: 13px; cursor: pointer; border-radius: 4px; margin-bottom: 2px;
+            padding: 8px 6px; font-size: 13px; cursor: pointer; border-radius: 4px; margin-bottom: 2px;
             display: flex; justify-content: space-between; align-items: center; word-break: break-all;
         }
-        .file-item:hover, .file-item.active { background: #555; }
+        .file-item:hover, .file-item.active { background: #555; border-left: 3px solid var(--accent-blue); }
+        .file-item-actions { display: flex; flex-shrink: 0; }
         
-        @media (max-width: 600px) {
-            .sidebar {
-                position: absolute; z-index: 100; height: 100%; transform: translateX(-110%);
-                margin-right: 0; box-shadow: 2px 0 10px rgba(0,0,0,0.5); width: 220px;
-            }
-            .sidebar.open { transform: translateX(0); }
+        /* サイドバー表示時の半透明オーバーレイ（タップで閉じる） */
+        .sidebar-overlay {
+            display: none; position: absolute; z-index: 90; left: 0; top: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.5);
         }
+        .sidebar-overlay.show { display: block; }
 
-        .editor-area { display: flex; flex-direction: column; flex-grow: 1; width: 100%; overflow: hidden; }
+        .editor-area { display: flex; flex-direction: column; flex-grow: 1; width: 100%; height: 100%; overflow: hidden; }
         .editor-tabs { display: flex; gap: 2px; overflow-x: auto; margin-bottom: 0; scrollbar-width: none; flex-shrink: 0; }
         .editor-tabs::-webkit-scrollbar { display: none; }
         .tab {
             padding: 8px 12px; background: #333; border-radius: 6px 6px 0 0; font-size: 13px;
-            cursor: pointer; white-space: nowrap; border: 1px solid #444; border-bottom: none;
+            cursor: pointer; white-space: nowrap; border: 1px solid var(--border-color); border-bottom: none;
             color: #aaa; display: flex; align-items: center; gap: 5px;
         }
-        .tab.active { background: #2b2b2b; color: #fff; border-top: 2px solid var(--accent-blue); } /* darculaテーマの背景に合わせる */
+        .tab.active { background: #2b2b2b; color: #fff; border-top: 2px solid var(--accent-blue); }
         
-        /* CodeMirror スタイル調整 (旧 textarea の代わり) */
+        /* CodeMirror スタイル調整 */
         .CodeMirror {
-            width: 100%; flex-grow: 1; height: 0; /* height 0 と flex-grow で独立スクロール領域を形成 */
+            width: 100%; flex-grow: 1; height: 100%; 
             box-sizing: border-box;
-            border: 1px solid #444; border-top: none; border-radius: 0 8px 8px 8px;
+            border: 1px solid var(--border-color); border-top: none; border-radius: 0 8px 8px 8px;
             font-family: ui-monospace, "Courier New", Courier, monospace; font-size: 14px;
             z-index: 0;
         }
+        .CodeMirror-hints { background: var(--panel-bg); border: 1px solid var(--border-color); color: #fff; font-size: 14px; z-index: 6000; }
+        .CodeMirror-hint { color: #ccc; }
+        .CodeMirror-hint-active { background: var(--accent-blue); color: #fff; }
+        .CodeMirror-dialog { background: var(--panel-bg); color: #fff; padding: 8px; z-index: 1001; border-bottom: 1px solid var(--border-color); }
+        .CodeMirror-dialog input { background: #1e1e1e; color: #fff; border: 1px solid #555; padding: 4px; border-radius: 4px; }
         
-        .controls { display: flex; gap: 10px; margin-top: 10px; margin-bottom: 10px; flex-shrink: 0; }
+        .controls { display: flex; gap: 8px; margin-bottom: 6px; flex-shrink: 0; }
         .controls button {
-            flex: 1; padding: 14px; font-size: 15px; font-weight: bold;
+            flex: 1; padding: 12px; font-size: 14px; font-weight: bold;
             border: none; border-radius: 8px; color: white; cursor: pointer;
         }
         .btn-run { background-color: var(--accent-blue); }
         .btn-ai { background-color: var(--accent-green); }
         .controls button:active { opacity: 0.8; transform: scale(0.98); }
+        
         .output-container {
-            height: 25%; flex-shrink: 0; background-color: #000;
-            border: 1px solid #444; border-radius: 8px; padding: 10px;
+            height: 22%; min-height: 80px; flex-shrink: 0; background-color: #000;
+            border: 1px solid var(--border-color); border-radius: 8px; padding: 10px;
             overflow-y: auto; font-family: monospace; font-size: 13px;
             white-space: pre-wrap; word-wrap: break-word; color: #fff;
         }
         .status { font-size: 12px; color: #888; margin-bottom: 5px; border-bottom: 1px solid #333; padding-bottom: 3px;}
+        
         .modal {
-            display: none; position: fixed; z-index: 1000; left: 0; top: 0;
+            display: none; position: fixed; z-index: 3000; left: 0; top: 0;
             width: 100%; height: 100%; background-color: rgba(0,0,0,0.7);
         }
         .modal-content {
-            background-color: var(--panel-bg); margin: 10% auto; padding: 20px;
-            border: 1px solid #555; width: 90%; border-radius: 8px; box-sizing: border-box; max-height: 85vh; overflow-y: auto;
+            background-color: var(--panel-bg); margin: 5% auto; padding: 20px;
+            border: 1px solid #555; width: 95%; max-width: 500px; border-radius: 8px; box-sizing: border-box; 
+            max-height: 90vh; overflow-y: auto;
         }
-        .modal-content h2 { margin-top: 0; font-size: 16px; border-bottom: 1px solid #444; padding-bottom: 8px; }
-        .modal-content label { display: block; margin-top: 12px; font-size: 12px; color: #bbb; }
+        .modal-content h2 { margin-top: 0; font-size: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; }
+        .modal-content label { display: block; margin-top: 15px; font-size: 13px; color: #bbb; font-weight: bold; }
         .modal-content input, .modal-content select, .modal-content textarea.setting-area {
             width: 100%; padding: 10px; margin-top: 5px; background: #1e1e1e; color: #fff;
-            border: 1px solid #444; border-radius: 4px; box-sizing: border-box; font-size: 14px;
+            border: 1px solid var(--border-color); border-radius: 4px; box-sizing: border-box; font-size: 14px;
         }
         
-        .settings-tabs { display: flex; gap: 5px; margin-bottom: 15px; border-bottom: 1px solid #444; padding-bottom: 5px; }
-        .settings-tabs button { background: transparent; border: none; color: #aaa; padding: 8px 12px; cursor: pointer; font-size: 14px; border-radius: 4px; }
+        .settings-tabs { display: flex; gap: 5px; margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 5px; overflow-x: auto; scrollbar-width: none; }
+        .settings-tabs::-webkit-scrollbar { display: none; }
+        .settings-tabs button { background: transparent; border: none; color: #aaa; padding: 8px 10px; cursor: pointer; font-size: 13px; border-radius: 4px; white-space: nowrap; }
         .settings-tabs button.active { color: var(--accent-blue); background: #333; font-weight: bold; }
         
         .modal-btn-group { display: flex; gap: 10px; margin-top: 20px; }
-        .modal-btn-group button { padding: 12px; flex: 1; border: none; border-radius: 4px; color: white; cursor: pointer;}
+        .modal-btn-group button { padding: 12px; flex: 1; border: none; border-radius: 4px; color: white; cursor: pointer; font-size: 14px; font-weight: bold;}
+        
         #toast {
             visibility: hidden; min-width: 200px; background-color: #333; color: #fff;
             text-align: center; border-radius: 20px; padding: 10px 20px; position: fixed;
-            z-index: 1001; left: 50%; bottom: 30px; transform: translateX(-50%); font-size: 13px;
+            z-index: 4000; left: 50%; bottom: 30px; transform: translateX(-50%); font-size: 13px;
             box-shadow: 0px 4px 10px rgba(0,0,0,0.5); opacity: 0; transition: opacity 0.3s, bottom 0.3s;
         }
         #toast.show { visibility: visible; opacity: 1; bottom: 50px; }
@@ -142,32 +189,69 @@
             border-radius: 50%; animation: rotation 1s linear infinite; margin-right: 5px; vertical-align: middle;
         }
         @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* 長押し予約語メニュー (フローティング) */
+        .floating-menu {
+            display: none; position: fixed; z-index: 5000;
+            background: rgba(45, 45, 45, 0.95); border: 1px solid var(--border-color); border-radius: 8px;
+            padding: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.7);
+            grid-template-columns: repeat(3, 1fr); gap: 8px;
+            width: 280px; backdrop-filter: blur(5px);
+        }
+        .floating-menu button {
+            background: #444; color: #fff; border: none; padding: 10px 5px;
+            border-radius: 4px; font-size: 14px; font-family: monospace; cursor: pointer; font-weight: bold;
+        }
+        .floating-menu button:active { background: var(--accent-blue); }
     </style>
 </head>
 <body>
 
     <div class="header-container">
-        <button class="btn-icon" onclick="toggleSidebar()" title="ファイル一覧">📁</button>
+        <button class="btn-icon" onclick="toggleSidebar()" title="ワークスペース">📁</button>
         <h1>📱 Mobile Python & AI</h1>
         <button class="btn-icon" onclick="openSettings()" title="設定">⚙️</button>
     </div>
 
-    <input type="text" id="ai-prompt" placeholder="AIに指示 (例: 1から10まで足すコードを書いて)">
+    <input type="text" id="ai-prompt" placeholder="✨ AIに指示 (例: 1から10まで足すコードを書いて)">
     
-    <div class="editor-tools">
-        <button onclick="insertComment('# ')"># コメント</button>
-        <button onclick="insertComment('# AI: ')"># AI指示</button>
-        <button onclick="openHistory()">📜 履歴</button>
-        <button onclick="importData()">📂 インポート</button>
-        <button onclick="exportData()">💾 ZIP保存</button>
+    <!-- スマホコーディング特化のツールバー (2段構成) -->
+    <div class="editor-tools-container">
+        <!-- 1段目: 頻繁な入力補助 -->
+        <div class="editor-tools">
+            <button onclick="smartTab()" title="Tab/Indent">Tab</button>
+            <button onclick="insertWrap('(', ')')">()</button>
+            <button onclick="insertWrap('[', ']')">[]</button>
+            <button onclick="insertWrap('{', '}')">{}</button>
+            <button onclick="insertWrap('\'', '\'')">''</button>
+            <button onclick="insertWrap('\"', '\"')">""</button>
+            <button onclick="insertText(':')">:</button>
+            <button onclick="insertText('=')">=</button>
+        </div>
+        <!-- 2段目: アクション/ユーティリティ (指定順序) -->
+        <div class="editor-tools">
+            <button onclick="toggleComment()"># コメント</button>
+            <button onclick="insertComment('# AI: ')" class="btn-special"># AI指示</button>
+            <button onclick="formatCode()" class="btn-special" title="PEP8で整形">✨ 整形</button>
+            <button onclick="execSearch()">🔍 検索</button>
+            <button onclick="execReplace()">🔄 置換</button>
+            <button onclick="undo()" title="元に戻す">↩️</button>
+            <button onclick="redo()" title="やり直し">↪️</button>
+        </div>
     </div>
 
     <div class="main-layout">
-        <!-- ファイルエクスプローラー -->
+        <!-- サイドバー表示時のオーバーレイ（タップで閉じる） -->
+        <div id="sidebar-overlay" class="sidebar-overlay" onclick="closeSidebar()"></div>
+
+        <!-- ファイルエクスプローラー (サイドバー) -->
         <div id="sidebar" class="sidebar">
-            <h3 style="font-size: 13px; margin: 0 0 10px 0; color: #bbb;">📁 ワークスペース</h3>
-            <button class="btn-action" onclick="openDirectory()">📂 ローカルフォルダを開く</button>
-            <button class="btn-action" onclick="createNewFile()">📄 新規ファイル作成</button>
+            <div class="sidebar-header">
+                <h3>📁 ワークスペース</h3>
+                <button class="btn-icon" onclick="closeSidebar()" title="閉じる">✖</button>
+            </div>
+            <!-- 目立つ新規ファイル作成ボタン -->
+            <button class="btn-action" onclick="createNewFile()" style="background-color: var(--accent-blue); padding: 10px; font-size: 14px;">＋ 新規ファイル作成</button>
             <div id="file-tree" class="file-tree"></div>
         </div>
 
@@ -191,6 +275,25 @@
 
     <div id="toast"></div>
 
+    <!-- 長押し予約語メニュー (フローティング) -->
+    <div id="floating-keyword-menu" class="floating-menu">
+        <button onclick="insertKeywordAdvanced('def')">def</button>
+        <button onclick="insertKeywordAdvanced('class')">class</button>
+        <button onclick="insertKeywordAdvanced('if')">if</button>
+        <button onclick="insertKeywordAdvanced('elif')">elif</button>
+        <button onclick="insertKeywordAdvanced('else')">else</button>
+        <button onclick="insertKeywordAdvanced('for')">for</button>
+        <button onclick="insertKeywordAdvanced('while')">while</button>
+        <button onclick="insertKeywordAdvanced('return')">return</button>
+        <button onclick="insertKeywordAdvanced('import')">import</button>
+        <button onclick="insertKeywordAdvanced('from')">from</button>
+        <button onclick="insertKeywordAdvanced('True')">True</button>
+        <button onclick="insertKeywordAdvanced('False')">False</button>
+        <button onclick="insertKeywordAdvanced('None')">None</button>
+        <button onclick="insertKeywordAdvanced('self')">self</button>
+        <button onclick="insertKeywordAdvanced('print')">print()</button>
+    </div>
+
     <!-- 設定モーダル -->
     <div id="settings-modal" class="modal">
         <div class="modal-content">
@@ -198,21 +301,26 @@
             
             <div class="settings-tabs">
                 <button id="tab-btn-ai" class="active" onclick="switchSettingTab('ai')">AI設定</button>
-                <button id="tab-btn-pip" onclick="switchSettingTab('pip')">pip (依存)</button>
-                <button id="tab-btn-env" onclick="switchSettingTab('env')">.env (環境変数)</button>
+                <button id="tab-btn-pip" onclick="switchSettingTab('pip')">pip</button>
+                <button id="tab-btn-env" onclick="switchSettingTab('env')">.env</button>
+                <button id="tab-btn-data" onclick="switchSettingTab('data')">データ管理</button>
             </div>
 
             <!-- AI設定 -->
             <div id="setting-ai" class="setting-panel">
                 <label>AIプロバイダー / モデル</label>
-                <select id="setting-model">
-                    <option value="gemini-2.5-flash">Gemini-2.5-flash (推奨)</option>
-                    <option value="gemini-1.5-pro">Gemini-1.5-pro</option>
-                    <option value="gpt-4o">GPT-4o (Mock)</option>
-                    <option value="claude-3-opus">Claude 3 Opus (Mock)</option>
-                    <option value="grok">Grok (Mock)</option>
-                </select>
-                <label>APIキー (IndexedDBに安全にローカル保存されます)</label>
+                <div style="display:flex; gap:5px; margin-top:5px;">
+                    <select id="setting-model" style="flex:1;">
+                        <option value="gemini-2.5-flash">Gemini-2.5-flash (推奨/高速)</option>
+                        <option value="gemini-1.5-pro">Gemini-1.5-pro</option>
+                        <option value="gpt-4o">GPT-4o</option>
+                        <option value="claude-3-5-sonnet">Claude 3.5 Sonnet</option>
+                        <option value="grok-beta">Grok</option>
+                    </select>
+                </div>
+                <input type="text" id="setting-custom-model" placeholder="カスタムモデル名を直接入力（優先）" style="margin-top:5px;">
+                
+                <label>APIキー (IndexedDBに安全にローカル保存)</label>
                 <input type="password" id="setting-apikey" placeholder="AI API Keyを入力">
                 <label>システムプロンプト / 役割設定</label>
                 <textarea id="setting-system-prompt" class="setting-area" rows="4"></textarea>
@@ -230,21 +338,26 @@
                 <textarea id="setting-env-vars" class="setting-area" rows="6" placeholder="API_KEY=your_secret_key&#10;DEBUG=True"></textarea>
             </div>
 
-            <div class="modal-btn-group">
-                <button onclick="saveSettings()" style="background: var(--accent-blue);">保存</button>
-                <button onclick="closeSettings()" style="background: #555;">閉じる</button>
+            <!-- データ管理 (ワークスペース/インポート/エクスポート/履歴削除) -->
+            <div id="setting-data" class="setting-panel" style="display:none;">
+                <label>ローカルフォルダ連携 (FSAA)</label>
+                <p style="font-size:11px; color:#aaa; margin-top:0;">ブラウザが対応している場合、端末内のフォルダを直接編集できます。</p>
+                <button class="btn-action" onclick="openDirectory()" style="padding: 12px;">📂 ローカルフォルダを開く</button>
+                
+                <label style="margin-top:20px;">インポート / エクスポート</label>
+                <div style="display:flex; gap:10px; margin-top:5px;">
+                    <button class="btn-action" onclick="importData()" style="padding: 12px; margin-bottom:0;">📂 インポート</button>
+                    <button class="btn-action" onclick="exportData()" style="padding: 12px; margin-bottom:0; background: var(--accent-blue);">💾 ZIP保存</button>
+                </div>
+                
+                <label style="margin-top:20px;">履歴データ管理</label>
+                <p style="font-size:11px; color:#aaa; margin-top:0;">過去のAI生成プロンプトとコードの履歴をクリアします。</p>
+                <button class="btn-action" onclick="clearHistory()" style="padding: 12px; background:#a33;">🗑 履歴データをすべて削除</button>
             </div>
-        </div>
-    </div>
 
-    <!-- 履歴管理モーダル -->
-    <div id="history-modal" class="modal">
-        <div class="modal-content">
-            <h2>📜 生成履歴 (検索・参照)</h2>
-            <input type="text" id="history-search" placeholder="履歴を検索..." oninput="renderHistory()" style="width:100%; padding:8px; margin-bottom:10px; background:#1e1e1e; color:#fff; border:1px solid #444; border-radius:4px;">
-            <div id="history-list" style="max-height: 250px; overflow-y: auto; font-size: 13px;"></div>
             <div class="modal-btn-group">
-                <button onclick="closeHistory()" style="background: #555;">閉じる</button>
+                <button onclick="saveSettings()" style="background: var(--accent-blue);">設定を保存</button>
+                <button onclick="closeSettings()" style="background: #555;">閉じる</button>
             </div>
         </div>
     </div>
@@ -269,11 +382,22 @@
             if (wakeLock !== null) wakeLock.release().then(() => wakeLock = null);
         }
 
-        // --- UI操作 ---
+        // --- UI操作 (サイドバー) ---
         function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('open');
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('show');
         }
 
+        function closeSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            sidebar.classList.remove('open');
+            overlay.classList.remove('show');
+        }
+
+        // --- 設定タブ ---
         function switchSettingTab(tabId) {
             document.querySelectorAll('.setting-panel').forEach(p => p.style.display = 'none');
             document.querySelectorAll('.settings-tabs button').forEach(b => b.classList.remove('active'));
@@ -283,12 +407,156 @@
 
         function openSettings() { document.getElementById('settings-modal').style.display = 'block'; }
         function closeSettings() { document.getElementById('settings-modal').style.display = 'none'; }
-        function closeHistory() { document.getElementById('history-modal').style.display = 'none'; }
+
+        // --- エディタ補助機能 ---
+        function smartTab() {
+            if (!codeEditorInstance) return;
+            const cm = codeEditorInstance;
+            if (cm.somethingSelected()) {
+                cm.execCommand("indentMore");
+            } else {
+                cm.replaceSelection("    ");
+            }
+            cm.focus();
+        }
+
+        function insertText(text) {
+            if (!codeEditorInstance) return;
+            codeEditorInstance.replaceSelection(text);
+            codeEditorInstance.focus();
+        }
+
+        function insertWrap(start, end) {
+            if (!codeEditorInstance) return;
+            const selection = codeEditorInstance.getSelection();
+            if (selection) {
+                codeEditorInstance.replaceSelection(start + selection + end);
+            } else {
+                const pos = codeEditorInstance.getCursor();
+                codeEditorInstance.replaceRange(start + end, pos);
+                codeEditorInstance.setCursor({line: pos.line, ch: pos.ch + start.length});
+            }
+            codeEditorInstance.focus();
+        }
+
+        function insertComment(text) {
+            if (!codeEditorInstance) return;
+            const selection = codeEditorInstance.getSelection();
+            if (selection && text.trim() === '#') {
+                const commented = selection.split('\n').map(line => '# ' + line).join('\n');
+                codeEditorInstance.replaceSelection(commented);
+            } else {
+                const pos = codeEditorInstance.getCursor();
+                if (pos.ch === 0) {
+                    codeEditorInstance.replaceSelection(text);
+                } else {
+                    codeEditorInstance.replaceSelection('\n' + text);
+                }
+            }
+            codeEditorInstance.focus();
+            showToast("AI指示用コメントを挿入しました");
+        }
+
+        function undo() { if(codeEditorInstance) codeEditorInstance.undo(); }
+        function redo() { if(codeEditorInstance) codeEditorInstance.redo(); }
+        function execSearch() { if(codeEditorInstance) codeEditorInstance.execCommand("find"); }
+        function execReplace() { if(codeEditorInstance) codeEditorInstance.execCommand("replace"); }
+        function toggleComment() { if(codeEditorInstance) codeEditorInstance.execCommand("toggleComment"); }
+
+        // --- 予約語フローティングメニューと高度な挿入ロジック (長押し検知) ---
+        let longPressTimer;
+        let touchStartX, touchStartY;
+        const LONG_PRESS_DURATION = 500; // 500ms
+
+        function onTouchStart(e) {
+            if (e.touches.length > 1) return;
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+            longPressTimer = setTimeout(() => {
+                showKeywordMenu(touchStartX, touchStartY);
+            }, LONG_PRESS_DURATION);
+        }
+
+        function onTouchMove(e) {
+            if (!touchStartX || !touchStartY) return;
+            const dx = Math.abs(e.touches[0].clientX - touchStartX);
+            const dy = Math.abs(e.touches[0].clientY - touchStartY);
+            if (dx > 10 || dy > 10) {
+                clearTimeout(longPressTimer);
+            }
+        }
+
+        function onTouchEnd() {
+            clearTimeout(longPressTimer);
+        }
+
+        function showKeywordMenu(x, y) {
+            const menu = document.getElementById('floating-keyword-menu');
+            menu.style.display = 'grid';
+            let menuX = x - 140; 
+            let menuY = y - 140; 
+            if (menuX < 10) menuX = 10;
+            if (menuX + 280 > window.innerWidth) menuX = window.innerWidth - 290;
+            if (menuY < 50) menuY = y + 20; 
+            
+            menu.style.left = menuX + 'px';
+            menu.style.top = menuY + 'px';
+            if (navigator.vibrate) navigator.vibrate(50);
+        }
+
+        function insertKeywordAdvanced(type) {
+            if (!codeEditorInstance) return;
+            const cm = codeEditorInstance;
+            let textToInsert = "";
+            let cursorOffsetCh = 0;
+
+            switch(type) {
+                case 'def': textToInsert = "def ():"; cursorOffsetCh = -3; break;
+                case 'class': textToInsert = "class :"; cursorOffsetCh = -1; break;
+                case 'if': textToInsert = "if :"; cursorOffsetCh = -1; break;
+                case 'elif': textToInsert = "elif :"; cursorOffsetCh = -1; break;
+                case 'else': textToInsert = "else:"; cursorOffsetCh = 0; break;
+                case 'for': textToInsert = "for  in :"; cursorOffsetCh = -5; break;
+                case 'while': textToInsert = "while :"; cursorOffsetCh = -1; break;
+                case 'return': textToInsert = "return "; break;
+                case 'import': textToInsert = "import "; break;
+                case 'from': textToInsert = "from  import "; cursorOffsetCh = -8; break;
+                case 'print': textToInsert = "print()"; cursorOffsetCh = -1; break;
+                default: textToInsert = type; break;
+            }
+
+            cm.replaceSelection(textToInsert);
+            if (cursorOffsetCh !== 0) {
+                const newPos = cm.getCursor();
+                cm.setCursor({ line: newPos.line, ch: newPos.ch + cursorOffsetCh });
+            }
+            cm.focus();
+            closeKeywordMenu();
+        }
+
+        function closeKeywordMenu() {
+            document.getElementById('floating-keyword-menu').style.display = 'none';
+        }
+
+        // メニュー外タップで閉じる
+        document.addEventListener('touchstart', (e) => {
+            const menu = document.getElementById('floating-keyword-menu');
+            if (menu.style.display === 'grid' && !menu.contains(e.target)) {
+                closeKeywordMenu();
+            }
+        }, {passive: true});
+        document.addEventListener('mousedown', (e) => {
+            const menu = document.getElementById('floating-keyword-menu');
+            if (menu.style.display === 'grid' && !menu.contains(e.target)) {
+                closeKeywordMenu();
+            }
+        });
 
         // --- データベース (IndexedDB) & 設定管理 ---
         let db;
         let appSettings = { 
-            model: 'gemini-2.5-flash', 
+            model: 'gemini-2.5-flash',
+            customModel: '',
             apiKey: '', 
             systemPrompt: 'あなたはプロのPythonエンジニアです。簡潔で正確なコードを提供し、ユーザーの指示に従ってください。',
             pipPackages: '',
@@ -325,6 +593,7 @@
                     if (req.result) {
                         appSettings = { ...appSettings, ...req.result.data };
                         document.getElementById('setting-model').value = appSettings.model;
+                        document.getElementById('setting-custom-model').value = appSettings.customModel || '';
                         document.getElementById('setting-apikey').value = appSettings.apiKey;
                         document.getElementById('setting-system-prompt').value = appSettings.systemPrompt;
                         document.getElementById('setting-pip-packages').value = appSettings.pipPackages || '';
@@ -336,6 +605,7 @@
 
         function saveSettings() {
             appSettings.model = document.getElementById('setting-model').value;
+            appSettings.customModel = document.getElementById('setting-custom-model').value;
             appSettings.apiKey = document.getElementById('setting-apikey').value;
             appSettings.systemPrompt = document.getElementById('setting-system-prompt').value;
             appSettings.pipPackages = document.getElementById('setting-pip-packages').value;
@@ -351,7 +621,7 @@
 
         // --- ファイル/ワークスペース管理 (仮想 & FSAA) ---
         let dirHandle = null;
-        let files = []; // { name: string, content: string, handle: FileHandle|null, isDirty: boolean }
+        let files = []; 
         let activeFileIndex = -1;
         let autoSaveTimer;
 
@@ -362,7 +632,7 @@
             req.onsuccess = () => {
                 if (req.result && req.result.data && req.result.data.length > 0) {
                     files = req.result.data;
-                    files.forEach(f => f.isDirty = false); // ロード時はクリーン
+                    files.forEach(f => f.isDirty = false);
                 } else {
                     defaultFilesInit();
                 }
@@ -390,7 +660,6 @@
             const file = files[activeFileIndex];
             file.content = codeEditorInstance.getValue();
             
-            // FSAA連携: ローカルファイルに直接書き込む
             if (file.handle) {
                 try {
                     const options = { mode: 'readwrite' };
@@ -411,21 +680,23 @@
             saveVirtualFiles();
         }
 
-        // FSAA: フォルダを開く
         async function openDirectory() {
+            closeSettings();
             if (!('showDirectoryPicker' in window)) {
                 showToast("このブラウザはローカルフォルダ機能に未対応です。");
                 return;
             }
             try {
                 dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
-                showToast("フォルダをスキャン中...");
+                showToast("フォルダを読み込み中...");
                 files = [];
                 for await (const entry of dirHandle.values()) {
                     if (entry.kind === 'file') {
-                        const file = await entry.getFile();
-                        const content = await file.text();
-                        files.push({ name: entry.name, content: content, handle: entry, isDirty: false });
+                        if (entry.name.match(/\.(py|txt|md|json|env|csv)$/) || entry.name === 'requirements.txt') {
+                            const file = await entry.getFile();
+                            const content = await file.text();
+                            files.push({ name: entry.name, content: content, handle: entry, isDirty: false });
+                        }
                     }
                 }
                 if (files.length === 0) {
@@ -434,6 +705,7 @@
                     activeFileIndex = 0;
                     switchFile(0);
                 }
+                toggleSidebar();
                 showToast("ワークスペースを開きました");
             } catch (e) {
                 if (e.name !== 'AbortError') showToast("フォルダの読み込みに失敗しました");
@@ -460,6 +732,33 @@
             showToast(`${name} を作成しました`);
         }
 
+        async function renameFile(index, event) {
+            event.stopPropagation();
+            const file = files[index];
+            const newName = prompt("新しいファイル名を入力してください", file.name);
+            if (!newName || newName === file.name) return;
+            
+            if (file.handle && dirHandle) {
+                try {
+                    const newHandle = await dirHandle.getFileHandle(newName, { create: true });
+                    const writable = await newHandle.createWritable();
+                    await writable.write(file.content);
+                    await writable.close();
+                    await dirHandle.removeEntry(file.name);
+                    file.handle = newHandle;
+                } catch (e) {
+                    showToast("リネーム失敗: " + e.message);
+                    return;
+                }
+            }
+            
+            file.name = newName;
+            renderSidebar();
+            renderTabs();
+            saveVirtualFiles();
+            showToast("ファイル名を変更しました");
+        }
+
         async function deleteFile(index, event) {
             event.stopPropagation();
             const file = files[index];
@@ -471,8 +770,12 @@
             }
             
             files.splice(index, 1);
-            if (files.length === 0) files.push({ name: 'main.py', content: '', handle: null, isDirty: false });
-            if (activeFileIndex >= files.length) activeFileIndex = files.length - 1;
+            if (files.length === 0) {
+                files.push({ name: 'main.py', content: '', handle: null, isDirty: false });
+                activeFileIndex = 0;
+            } else if (activeFileIndex >= files.length) {
+                activeFileIndex = files.length - 1;
+            }
             switchFile(activeFileIndex);
             saveVirtualFiles();
         }
@@ -482,7 +785,10 @@
             tree.innerHTML = files.map((f, i) => `
                 <div class="file-item ${i === activeFileIndex ? 'active' : ''}" onclick="switchFile(${i})">
                     <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">📄 ${f.name}</span>
-                    <button class="btn-icon" style="font-size:12px; color:#ff6b6b; flex-shrink:0;" onclick="deleteFile(${i}, event)">🗑</button>
+                    <div class="file-item-actions">
+                        <button class="btn-icon" style="font-size:14px; color:#ccc; margin-left:5px;" onclick="renameFile(${i}, event)" title="リネーム">✏️</button>
+                        <button class="btn-icon" style="font-size:14px; color:#ff6b6b; margin-left:5px;" onclick="deleteFile(${i}, event)" title="削除">✕</button>
+                    </div>
                 </div>
             `).join('');
             renderTabs();
@@ -500,38 +806,20 @@
         function switchFile(index) {
             if (index < 0 || index >= files.length) return;
             
-            // 現在の入力を確定
-            if (activeFileIndex >= 0 && files[activeFileIndex]) {
+            if (activeFileIndex >= 0 && files[activeFileIndex] && codeEditorInstance) {
                 files[activeFileIndex].content = codeEditorInstance.getValue();
             }
             
             activeFileIndex = index;
-            codeEditorInstance.setValue(files[activeFileIndex].content);
-            codeEditorInstance.clearHistory(); // Undo履歴リセット
+            if(codeEditorInstance) {
+                codeEditorInstance.setValue(files[activeFileIndex].content);
+                codeEditorInstance.clearHistory(); 
+            }
             renderSidebar();
-            
-            // モバイル時はファイル選択後にサイドバーを閉じる
-            if (window.innerWidth <= 600) {
-                document.getElementById('sidebar').classList.remove('open');
-            }
-        }
-
-        function insertComment(text) {
-            if (!codeEditorInstance) return;
-            const selection = codeEditorInstance.getSelection();
-            if (selection && text === '# ') {
-                const commented = selection.split('\n').map(line => '# ' + line).join('\n');
-                codeEditorInstance.replaceSelection(commented);
-            } else {
-                codeEditorInstance.replaceSelection(text);
-            }
-            codeEditorInstance.focus();
-            saveCurrentFile();
-            showToast("コメントを挿入しました");
+            closeSidebar();
         }
 
         // --- 履歴管理 ---
-        let historyData = [];
         function saveToHistory(prompt, codeResult) {
             if (!db) return;
             try {
@@ -539,38 +827,24 @@
                 tx.objectStore('history').add({ date: new Date().toISOString(), prompt, code: codeResult });
             } catch (err) { console.error("履歴保存エラー:", err); }
         }
-        
-        function openHistory() {
-            document.getElementById('history-modal').style.display = 'block';
-            if (!db) return;
-            const tx = db.transaction('history', 'readonly');
-            const req = tx.objectStore('history').getAll();
-            req.onsuccess = () => { historyData = req.result.reverse(); renderHistory(); };
-        }
-        
-        function renderHistory() {
-            const list = document.getElementById('history-list');
-            const query = document.getElementById('history-search').value.toLowerCase();
-            const filtered = historyData.filter(h => h.prompt.toLowerCase().includes(query) || h.code.toLowerCase().includes(query));
-            
-            if (filtered.length === 0) { list.innerHTML = '<p>履歴が見つかりません。</p>'; return; }
-            list.innerHTML = filtered.map(h => {
-                const safePrompt = h.prompt.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                const safeCode = h.code.substring(0, 100).replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                return '<div style="border-bottom: 1px solid #444; padding: 10px 0;">' +
-                    '<div style="color: #aaa; font-size: 11px;">' + new Date(h.date).toLocaleString() + '</div>' +
-                    '<div style="margin: 4px 0;"><strong>Q:</strong> ' + safePrompt + '</div>' +
-                    '<div style="color: var(--accent-green); white-space: pre-wrap; background: #111; padding: 5px; border-radius: 4px;">' + safeCode + '...</div>' +
-                '</div>';
-            }).join('');
+
+        function clearHistory() {
+            if(!confirm("保存されているAIの生成履歴をすべて削除しますか？")) return;
+            if(db) {
+                const tx = db.transaction('history', 'readwrite');
+                tx.objectStore('history').clear();
+                showToast("履歴を削除しました");
+                closeSettings();
+            }
         }
 
         // --- ZIPエクスポート・インポート機能 ---
         async function exportData() {
             try {
+                closeSettings();
                 const zip = new JSZip();
                 
-                if (activeFileIndex >= 0 && files[activeFileIndex]) {
+                if (activeFileIndex >= 0 && files[activeFileIndex] && codeEditorInstance) {
                     files[activeFileIndex].content = codeEditorInstance.getValue();
                 }
 
@@ -608,10 +882,11 @@
         }
 
         async function importData() {
+            closeSettings();
             if ('showOpenFilePicker' in window) {
                 try {
                     const [fileHandle] = await window.showOpenFilePicker({
-                        types: [{ description: 'テキスト/JSON/Python', accept: { 'text/*': ['.txt', '.md', '.py'], 'application/json': ['.json'] } }]
+                        types: [{ description: 'テキスト/JSON/Python', accept: { 'text/*': ['.txt', '.md', '.py', '.env'], 'application/json': ['.json'] } }]
                     });
                     const file = await fileHandle.getFile();
                     const text = await file.text();
@@ -619,7 +894,7 @@
                 } catch (err) { if(err.name !== 'AbortError') showToast("読み込み失敗"); }
             } else {
                 const input = document.createElement('input');
-                input.type = 'file'; input.accept = '.json,.txt,.md,.py';
+                input.type = 'file'; input.accept = '.json,.txt,.md,.py,.env';
                 input.onchange = e => {
                     const file = e.target.files[0];
                     if(!file) return;
@@ -644,20 +919,59 @@
             showToast("現在のタブに読み込みました");
         }
 
+        // --- Python補完機能拡張 ---
+        CodeMirror.commands.autocomplete = function(cm) {
+            CodeMirror.showHint(cm, function(cm, options) {
+                const word = /[\w$]+/;
+                const cur = cm.getCursor(), curLine = cm.getLine(cur.line);
+                const end = cur.ch, start = end;
+                let matchStart = start;
+                while (matchStart && word.test(curLine.charAt(matchStart - 1))) --matchStart;
+                const curWord = matchStart != end && curLine.slice(matchStart, end);
+                
+                let list = [];
+                const pythonKeywords = ["def", "class", "import", "from", "for", "while", "if", "elif", "else", "return", "True", "False", "None", "and", "or", "not", "in", "is", "try", "except", "finally", "with", "as", "lambda", "pass", "break", "continue", "yield", "global", "nonlocal", "del", "assert", "async", "await", "print", "self"];
+                
+                if (curWord) {
+                    list = pythonKeywords.filter(k => k.startsWith(curWord));
+                }
+                
+                const anywordResult = CodeMirror.hint.anyword(cm, options);
+                if (anywordResult && anywordResult.list) {
+                    list = [...new Set([...list, ...anywordResult.list])];
+                }
+                
+                return {list: list, from: CodeMirror.Pos(cur.line, matchStart), to: CodeMirror.Pos(cur.line, end)};
+            }, {completeSingle: false});
+        };
+
         // --- Python環境 ---
         let pyodide;
+        let installedPackages = new Set(['micropip', 'pyodide', 'js', 'pyodide_js', 'sys', 'os', 'io', 'math', 'json', 're', 'time', 'datetime', 'random', 'collections']);
+        const IMPORT_TO_PACKAGE = { 'sklearn': 'scikit-learn', 'cv2': 'opencv-python', 'PIL': 'Pillow', 'bs4': 'beautifulsoup4', 'yaml': 'pyyaml' };
+
         window.onload = async () => {
-            // CodeMirror エディタ初期化
             codeEditorInstance = CodeMirror.fromTextArea(document.getElementById('code'), {
                 mode: "python",
                 theme: "darcula",
                 lineNumbers: true,
                 indentUnit: 4,
                 matchBrackets: true,
-                lineWrapping: true
+                autoCloseBrackets: true,
+                lineWrapping: true,
+                extraKeys: {
+                    "Ctrl-Space": "autocomplete",
+                    "Cmd-/": "toggleComment",
+                    "Ctrl-/": "toggleComment"
+                }
             });
 
-            // 変更イベント監視（オートセーブ）
+            codeEditorInstance.on("inputRead", function(cm, change) {
+                if (change.text[0].match(/[a-zA-Z_]/)) {
+                    CodeMirror.commands.autocomplete(cm);
+                }
+            });
+
             codeEditorInstance.on('change', () => {
                 if (activeFileIndex >= 0 && files[activeFileIndex]) {
                     files[activeFileIndex].content = codeEditorInstance.getValue();
@@ -669,6 +983,12 @@
                     autoSaveTimer = setTimeout(saveCurrentFile, 2000);
                 }
             });
+
+            // 長押しイベントの登録 (エディタ領域)
+            const cmWrapper = codeEditorInstance.getWrapperElement();
+            cmWrapper.addEventListener('touchstart', onTouchStart, {passive: true});
+            cmWrapper.addEventListener('touchmove', onTouchMove, {passive: true});
+            cmWrapper.addEventListener('touchend', onTouchEnd, {passive: true});
 
             await init();
         };
@@ -696,9 +1016,44 @@
             }
         }
 
-        // --- パッケージ自動検出 & インストール ---
-        const installedPackages = new Set(['micropip', 'pyodide', 'js', 'pyodide_js', 'sys', 'os', 'io', 'math', 'json', 're', 'time', 'datetime', 'random', 'collections']);
-        const IMPORT_TO_PACKAGE = { 'sklearn': 'scikit-learn', 'cv2': 'opencv-python', 'PIL': 'Pillow', 'bs4': 'beautifulsoup4', 'yaml': 'pyyaml' };
+        async function formatCode() {
+            if (!pyodide) { showToast("Python環境が準備中かエラーです"); return; }
+            const code = codeEditorInstance.getValue();
+            if (!code.trim()) return;
+            
+            const statusText = document.getElementById('status-text');
+            statusText.innerHTML = "<span class='loader'></span> コード整形中(Black)...";
+            
+            try {
+                if (!installedPackages.has('black')) {
+                    const micropip = pyodide.pyimport("micropip");
+                    await micropip.install('black');
+                    installedPackages.add('black');
+                }
+                
+                pyodide.globals.set("code_to_format", code);
+                await pyodide.runPythonAsync(`
+import black
+try:
+    formatted_code = black.format_str(code_to_format, mode=black.FileMode())
+except Exception as e:
+    formatted_code = code_to_format
+                `);
+                const formattedCode = pyodide.globals.get("formatted_code");
+                if (formattedCode !== code && formattedCode !== pyodide.globals.get("code_to_format")) {
+                    codeEditorInstance.setValue(formattedCode);
+                    saveCurrentFile();
+                    showToast("PEP8で整形しました");
+                } else {
+                    showToast("整形済み、または構文エラーがあります");
+                }
+                statusText.innerText = "システム: 準備完了 ✅";
+            } catch (e) {
+                console.error("Format Error:", e);
+                showToast("整形エラー: パッケージのロードに失敗しました");
+                statusText.innerText = "システム: エラー";
+            }
+        }
 
         function detectImports(code) {
             const imports = new Set();
@@ -706,9 +1061,9 @@
             for (const line of lines) {
                 const trimmed = line.trim();
                 let m = trimmed.match(/^import\s+([a-zA-Z0-9_]+)/);
-                if (m) imports.add(m[1]);
+                if (m) imports.add(m[1].split('.')[0]); 
                 m = trimmed.match(/^from\s+([a-zA-Z0-9_]+)/);
-                if (m) imports.add(m[1]);
+                if (m) imports.add(m[1].split('.')[0]);
             }
             return Array.from(imports).filter(mod => !installedPackages.has(mod));
         }
@@ -752,7 +1107,6 @@
             outputDiv.style.color = "var(--text-color)";
 
             try {
-                // 自動検出とrequirementsの統合
                 const neededPkgs = detectImports(code);
                 const pipLines = appSettings.pipPackages.split('\n').map(l => l.trim()).filter(l => l);
                 const allPkgs = Array.from(new Set([...neededPkgs, ...pipLines]));
@@ -761,7 +1115,6 @@
                     await autoInstallPackages(allPkgs, statusText);
                 }
 
-                // .env設定のロード
                 if (appSettings.envVars) {
                     const envLines = appSettings.envVars.split('\n');
                     let envCode = 'import os\n';
@@ -799,9 +1152,9 @@
             }
         }
 
-        // --- AI連携 ---
         function stripCodeFences(text) { return text.replace(/```python\s*/gi, '').replace(/```\s*/g, '').trim(); }
 
+        // API コール (Gemini / OpenAI系互換)
         async function callGeminiAPI(apiKey, model, prompt, systemPrompt, codeContext) {
             const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + apiKey;
             const body = {
@@ -812,6 +1165,21 @@
             const data = await res.json();
             if (data.error) throw new Error(data.error.message);
             return stripCodeFences(data.candidates[0].content.parts[0].text);
+        }
+
+        async function callOpenAIAPI(apiKey, model, prompt, systemPrompt, codeContext) {
+            const url = 'https://api.openai.com/v1/chat/completions';
+            const body = {
+                model: model,
+                messages: [
+                    {role: "system", content: systemPrompt},
+                    {role: "user", content: "現在のファイル内容:\n\n" + codeContext + "\n\n指示:\n" + prompt}
+                ]
+            };
+            const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` }, body: JSON.stringify(body) });
+            const data = await res.json();
+            if (data.error) throw new Error(data.error.message);
+            return stripCodeFences(data.choices[0].message.content);
         }
 
         async function askAI() {
@@ -837,11 +1205,15 @@
             
             try {
                 let aiResponse;
-                if (appSettings.apiKey && appSettings.model.includes('gemini')) {
-                    aiResponse = await callGeminiAPI(appSettings.apiKey, appSettings.model, finalPrompt, appSettings.systemPrompt, fullCode);
+                const activeModel = appSettings.customModel || appSettings.model;
+                
+                if (appSettings.apiKey && activeModel.includes('gemini')) {
+                    aiResponse = await callGeminiAPI(appSettings.apiKey, activeModel, finalPrompt, appSettings.systemPrompt, fullCode);
+                } else if (appSettings.apiKey && (activeModel.includes('gpt') || activeModel.includes('grok'))) {
+                    aiResponse = await callOpenAIAPI(appSettings.apiKey, activeModel, finalPrompt, appSettings.systemPrompt, fullCode);
                 } else {
                     await new Promise(r => setTimeout(r, 1500));
-                    aiResponse = '# [AI Mock]\nfor i in range(3):\n    print("Success")';
+                    aiResponse = '# [AI Mock]\n# APIキー未設定かサポート外モデルです\nfor i in range(3):\n    print("Success")';
                 }
 
                 if (targetLineIndex !== -1) {
