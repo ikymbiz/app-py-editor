@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mobile Python AI Editor</title>
+    
+    <!-- CodeMirror (シンタックスハイライト・行番号) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/theme/darcula.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/mode/python/python.min.js"></script>
+
+    <!-- Pyodide & JSZip -->
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    
+    <style>
+        :root {
+            --bg-color: #1e1e1e;
+            --panel-bg: #2d2d2d;
+            --text-color: #d4d4d4;
+            --accent-blue: #007acc;
+            --accent-green: #2ea043;
+        }
+        body {
+            margin: 0; padding: 10px;
+            background-color: var(--bg-color); color: var(--text-color);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            display: flex; flex-direction: column; height: 100dvh; box-sizing: border-box;
+            overflow: hidden;
+        }
+        .header-container { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        h1 { font-size: 16px; margin: 0; color: #fff; text-align: center; flex-grow: 1; }
+        .btn-icon { background: none; border: none; font-size: 20px; cursor: pointer; padding: 0; color: #fff; }
+        input[type="text"] {
+            width: 100%; box-sizing: border-box; padding: 12px; margin-bottom: 10px;
+            background-color: var(--panel-bg); color: #fff;
+            border: 1px solid #444; border-radius: 8px; font-size: 14px;
+        }
+        .editor-tools { display: flex; gap: 5px; margin-bottom: 8px; flex-wrap: wrap; }
+        .editor-tools button {
+            flex: 1; min-width: 65px; padding: 8px; font-size: 12px; font-weight: normal;
+            background-color: #444; color: #ddd; border-radius: 4px; border: none; cursor: pointer;
+        }
+        .editor-tools button:active { opacity: 0.8; }
+        
+        /* メインレイアウト（サイドバー＋エディタ） */
+        .main-layout {
+            display: flex; flex-grow: 1; overflow: hidden; position: relative; margin-bottom: 10px;
+        }
+        .sidebar {
+            width: 200px; background-color: var(--panel-bg); border: 1px solid #444; border-radius: 8px;
+            margin-right: 10px; display: flex; flex-direction: column; padding: 10px; box-sizing: border-box;
+            transition: transform 0.3s ease; overflow-y: auto;
+        }
+        .sidebar button.btn-action {
+            width: 100%; padding: 8px; margin-bottom: 5px; background: #444; color: #fff;
+            border: none; border-radius: 4px; font-size: 12px; cursor: pointer;
+        }
+        .sidebar button.btn-action:hover { background: #555; }
+        .file-tree { margin-top: 10px; flex-grow: 1; overflow-y: auto; }
+        .file-item {
+            padding: 6px; font-size: 13px; cursor: pointer; border-radius: 4px; margin-bottom: 2px;
+            display: flex; justify-content: space-between; align-items: center; word-break: break-all;
+        }
+        .file-item:hover, .file-item.active { background: #555; }
+        
+        @media (max-width: 600px) {
+            .sidebar {
+                position: absolute; z-index: 100; height: 100%; transform: translateX(-110%);
+                margin-right: 0; box-shadow: 2px 0 10px rgba(0,0,0,0.5); width: 220px;
+            }
+            .sidebar.open { transform: translateX(0); }
+        }
+
+        .editor-area { display: flex; flex-direction: column; flex-grow: 1; width: 100%; overflow: hidden; }
+        .editor-tabs { display: flex; gap: 2px; overflow-x: auto; margin-bottom: 0; scrollbar-width: none; flex-shrink: 0; }
+        .editor-tabs::-webkit-scrollbar { display: none; }
+        .tab {
+            padding: 8px 12px; background: #333; border-radius: 6px 6px 0 0; font-size: 13px;
+            cursor: pointer; white-space: nowrap; border: 1px solid #444; border-bottom: none;
+            color: #aaa; display: flex; align-items: center; gap: 5px;
+        }
+        .tab.active { background: #2b2b2b; color: #fff; border-top: 2px solid var(--accent-blue); } /* darculaテーマの背景に合わせる */
+        
+        /* CodeMirror スタイル調整 (旧 textarea の代わり) */
+        .CodeMirror {
+            width: 100%; flex-grow: 1; height: 0; /* height 0 と flex-grow で独立スクロール領域を形成 */
+            box-sizing: border-box;
+            border: 1px solid #444; border-top: none; border-radius: 0 8px 8px 8px;
+            font-family: ui-monospace, "Courier New", Courier, monospace; font-size: 14px;
+            z-index: 0;
+        }
+        
+        .controls { display: flex; gap: 10px; margin-top: 10px; margin-bottom: 10px; flex-shrink: 0; }
+        .controls button {
+            flex: 1; padding: 14px; font-size: 15px; font-weight: bold;
+            border: none; border-radius: 8px; color: white; cursor: pointer;
+        }
+        .btn-run { background-color: var(--accent-blue); }
+        .btn-ai { background-color: var(--accent-green); }
+        .controls button:active { opacity: 0.8; transform: scale(0.98); }
+        .output-container {
+            height: 25%; flex-shrink: 0; background-color: #000;
+            border: 1px solid #444; border-radius: 8px; padding: 10px;
+            overflow-y: auto; font-family: monospace; font-size: 13px;
+            white-space: pre-wrap; word-wrap: break-word; color: #fff;
+        }
+        .status { font-size: 12px; color: #888; margin-bottom: 5px; border-bottom: 1px solid #333; padding-bottom: 3px;}
+        .modal {
+            display: none; position: fixed; z-index: 1000; left: 0; top: 0;
+            width: 100%; height: 100%; background-color: rgba(0,0,0,0.7);
+        }
+        .modal-content {
+            background-color: var(--panel-bg); margin: 10% auto; padding: 20px;
+            border: 1px solid #555; width: 90%; border-radius: 8px; box-sizing: border-box; max-height: 85vh; overflow-y: auto;
+        }
+        .modal-content h2 { margin-top: 0; font-size: 16px; border-bottom: 1px solid #444; padding-bottom: 8px; }
+        .modal-content label { display: block; margin-top: 12px; font-size: 12px; color: #bbb; }
+        .modal-content input, .modal-content select, .modal-content textarea.setting-area {
+            width: 100%; padding: 10px; margin-top: 5px; background: #1e1e1e; color: #fff;
+            border: 1px solid #444; border-radius: 4px; box-sizing: border-box; font-size: 14px;
+        }
+        
+        .settings-tabs { display: flex; gap: 5px; margin-bottom: 15px; border-bottom: 1px solid #444; padding-bottom: 5px; }
+        .settings-tabs button { background: transparent; border: none; color: #aaa; padding: 8px 12px; cursor: pointer; font-size: 14px; border-radius: 4px; }
+        .settings-tabs button.active { color: var(--accent-blue); background: #333; font-weight: bold; }
+        
+        .modal-btn-group { display: flex; gap: 10px; margin-top: 20px; }
+        .modal-btn-group button { padding: 12px; flex: 1; border: none; border-radius: 4px; color: white; cursor: pointer;}
+        #toast {
+            visibility: hidden; min-width: 200px; background-color: #333; color: #fff;
+            text-align: center; border-radius: 20px; padding: 10px 20px; position: fixed;
+            z-index: 1001; left: 50%; bottom: 30px; transform: translateX(-50%); font-size: 13px;
+            box-shadow: 0px 4px 10px rgba(0,0,0,0.5); opacity: 0; transition: opacity 0.3s, bottom 0.3s;
+        }
+        #toast.show { visibility: visible; opacity: 1; bottom: 50px; }
+        .loader {
+            display: inline-block; width: 12px; height: 12px;
+            border: 2px solid #fff; border-bottom-color: transparent;
+            border-radius: 50%; animation: rotation 1s linear infinite; margin-right: 5px; vertical-align: middle;
+        }
+        @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <div class="header-container">
+        <button class="btn-icon" onclick="toggleSidebar()" title="ファイル一覧">📁</button>
+        <h1>📱 Mobile Python & AI</h1>
+        <button class="btn-icon" onclick="openSettings()" title="設定">⚙️</button>
+    </div>
+
+    <input type="text" id="ai-prompt" placeholder="AIに指示 (例: 1から10まで足すコードを書いて)">
+    
+    <div class="editor-tools">
+        <button onclick="insertComment('# ')"># コメント</button>
+        <button onclick="insertComment('# AI: ')"># AI指示</button>
+        <button onclick="openHistory()">📜 履歴</button>
+        <button onclick="importData()">📂 インポート</button>
+        <button onclick="exportData()">💾 ZIP保存</button>
+    </div>
+
+    <div class="main-layout">
+        <!-- ファイルエクスプローラー -->
+        <div id="sidebar" class="sidebar">
+            <h3 style="font-size: 13px; margin: 0 0 10px 0; color: #bbb;">📁 ワークスペース</h3>
+            <button class="btn-action" onclick="openDirectory()">📂 ローカルフォルダを開く</button>
+            <button class="btn-action" onclick="createNewFile()">📄 新規ファイル作成</button>
+            <div id="file-tree" class="file-tree"></div>
+        </div>
+
+        <!-- エディタ領域 -->
+        <div class="editor-area">
+            <div id="editor-tabs" class="editor-tabs"></div>
+            <!-- CodeMirror 用テキストエリア -->
+            <textarea id="code" autocapitalize="off" autocomplete="off" spellcheck="false" autocorrect="off"></textarea>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button class="btn-run" onclick="runPython()">▶ 実行する</button>
+        <button class="btn-ai" id="btn-ai" onclick="askAI()">✨ AIに頼む</button>
+    </div>
+
+    <div class="output-container">
+        <div class="status" id="status-text">システム: 初期化中...</div>
+        <div id="output"></div>
+    </div>
+
+    <div id="toast"></div>
+
+    <!-- 設定モーダル -->
+    <div id="settings-modal" class="modal">
+        <div class="modal-content">
+            <h2>⚙️ システム設定</h2>
+            
+            <div class="settings-tabs">
+                <button id="tab-btn-ai" class="active" onclick="switchSettingTab('ai')">AI設定</button>
+                <button id="tab-btn-pip" onclick="switchSettingTab('pip')">pip (依存)</button>
+                <button id="tab-btn-env" onclick="switchSettingTab('env')">.env (環境変数)</button>
+            </div>
+
+            <!-- AI設定 -->
+            <div id="setting-ai" class="setting-panel">
+                <label>AIプロバイダー / モデル</label>
+                <select id="setting-model">
+                    <option value="gemini-2.5-flash">Gemini-2.5-flash (推奨)</option>
+                    <option value="gemini-1.5-pro">Gemini-1.5-pro</option>
+                    <option value="gpt-4o">GPT-4o (Mock)</option>
+                    <option value="claude-3-opus">Claude 3 Opus (Mock)</option>
+                    <option value="grok">Grok (Mock)</option>
+                </select>
+                <label>APIキー (IndexedDBに安全にローカル保存されます)</label>
+                <input type="password" id="setting-apikey" placeholder="AI API Keyを入力">
+                <label>システムプロンプト / 役割設定</label>
+                <textarea id="setting-system-prompt" class="setting-area" rows="4"></textarea>
+            </div>
+
+            <!-- pip設定 -->
+            <div id="setting-pip" class="setting-panel" style="display:none;">
+                <p style="font-size:12px; color:#aaa; margin-top:0;">1行に1つのパッケージ名を入力。Python実行前に自動インストールされます（requirements.txt 相当）。</p>
+                <textarea id="setting-pip-packages" class="setting-area" rows="6" placeholder="numpy&#10;pandas&#10;requests"></textarea>
+            </div>
+
+            <!-- env設定 -->
+            <div id="setting-env" class="setting-panel" style="display:none;">
+                <p style="font-size:12px; color:#aaa; margin-top:0;">KEY=VALUE の形式で入力。Python実行時に <code>os.environ</code> にロードされます。</p>
+                <textarea id="setting-env-vars" class="setting-area" rows="6" placeholder="API_KEY=your_secret_key&#10;DEBUG=True"></textarea>
+            </div>
+
+            <div class="modal-btn-group">
+                <button onclick="saveSettings()" style="background: var(--accent-blue);">保存</button>
+                <button onclick="closeSettings()" style="background: #555;">閉じる</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 履歴管理モーダル -->
+    <div id="history-modal" class="modal">
+        <div class="modal-content">
+            <h2>📜 生成履歴 (検索・参照)</h2>
+            <input type="text" id="history-search" placeholder="履歴を検索..." oninput="renderHistory()" style="width:100%; padding:8px; margin-bottom:10px; background:#1e1e1e; color:#fff; border:1px solid #444; border-radius:4px;">
+            <div id="history-list" style="max-height: 250px; overflow-y: auto; font-size: 13px;"></div>
+            <div class="modal-btn-group">
+                <button onclick="closeHistory()" style="background: #555;">閉じる</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- CodeMirror インスタンス ---
+        let codeEditorInstance;
+
+        // --- 共通ユーティリティ ---
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.innerText = msg;
+            toast.className = "show";
+            setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 3000);
+        }
+
+        let wakeLock = null;
+        async function requestWakeLock() {
+            try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {}
+        }
+        function releaseWakeLock() {
+            if (wakeLock !== null) wakeLock.release().then(() => wakeLock = null);
+        }
+
+        // --- UI操作 ---
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+        }
+
+        function switchSettingTab(tabId) {
+            document.querySelectorAll('.setting-panel').forEach(p => p.style.display = 'none');
+            document.querySelectorAll('.settings-tabs button').forEach(b => b.classList.remove('active'));
+            document.getElementById('setting-' + tabId).style.display = 'block';
+            document.getElementById('tab-btn-' + tabId).classList.add('active');
+        }
+
+        function openSettings() { document.getElementById('settings-modal').style.display = 'block'; }
+        function closeSettings() { document.getElementById('settings-modal').style.display = 'none'; }
+        function closeHistory() { document.getElementById('history-modal').style.display = 'none'; }
+
+        // --- データベース (IndexedDB) & 設定管理 ---
+        let db;
+        let appSettings = { 
+            model: 'gemini-2.5-flash', 
+            apiKey: '', 
+            systemPrompt: 'あなたはプロのPythonエンジニアです。簡潔で正確なコードを提供し、ユーザーの指示に従ってください。',
+            pipPackages: '',
+            envVars: ''
+        };
+        
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const req = indexedDB.open('AIPythonEditorDB', 2);
+                req.onupgradeneeded = (e) => {
+                    const database = e.target.result;
+                    if (!database.objectStoreNames.contains('settings')) database.createObjectStore('settings', { keyPath: 'id' });
+                    if (!database.objectStoreNames.contains('history')) database.createObjectStore('history', { keyPath: 'id', autoIncrement: true });
+                };
+                req.onsuccess = (e) => {
+                    db = e.target.result;
+                    loadSettings();
+                    loadVirtualFiles();
+                    resolve();
+                };
+                req.onerror = (e) => {
+                    console.error("IndexedDB初期化エラー:", e);
+                    resolve();
+                };
+            });
+        }
+
+        function loadSettings() {
+            if (!db) return;
+            try {
+                const tx = db.transaction('settings', 'readonly');
+                const req = tx.objectStore('settings').get('user_settings');
+                req.onsuccess = () => {
+                    if (req.result) {
+                        appSettings = { ...appSettings, ...req.result.data };
+                        document.getElementById('setting-model').value = appSettings.model;
+                        document.getElementById('setting-apikey').value = appSettings.apiKey;
+                        document.getElementById('setting-system-prompt').value = appSettings.systemPrompt;
+                        document.getElementById('setting-pip-packages').value = appSettings.pipPackages || '';
+                        document.getElementById('setting-env-vars').value = appSettings.envVars || '';
+                    }
+                };
+            } catch (err) { console.error("設定読み込みエラー:", err); }
+        }
+
+        function saveSettings() {
+            appSettings.model = document.getElementById('setting-model').value;
+            appSettings.apiKey = document.getElementById('setting-apikey').value;
+            appSettings.systemPrompt = document.getElementById('setting-system-prompt').value;
+            appSettings.pipPackages = document.getElementById('setting-pip-packages').value;
+            appSettings.envVars = document.getElementById('setting-env-vars').value;
+            
+            if (db) {
+                const tx = db.transaction('settings', 'readwrite');
+                tx.objectStore('settings').put({ id: 'user_settings', data: appSettings });
+            }
+            showToast('設定を保存しました');
+            closeSettings();
+        }
+
+        // --- ファイル/ワークスペース管理 (仮想 & FSAA) ---
+        let dirHandle = null;
+        let files = []; // { name: string, content: string, handle: FileHandle|null, isDirty: boolean }
+        let activeFileIndex = -1;
+        let autoSaveTimer;
+
+        function loadVirtualFiles() {
+            if (!db) return defaultFilesInit();
+            const tx = db.transaction('settings', 'readonly');
+            const req = tx.objectStore('settings').get('virtual_files');
+            req.onsuccess = () => {
+                if (req.result && req.result.data && req.result.data.length > 0) {
+                    files = req.result.data;
+                    files.forEach(f => f.isDirty = false); // ロード時はクリーン
+                } else {
+                    defaultFilesInit();
+                }
+                activeFileIndex = 0;
+                switchFile(0);
+            };
+            req.onerror = defaultFilesInit;
+        }
+
+        function defaultFilesInit() {
+            files = [{ name: 'main.py', content: '# ここにPythonコードを書きます\nprint("スマホからこんにちは！")\n', handle: null, isDirty: false }];
+            activeFileIndex = 0;
+            switchFile(0);
+        }
+
+        function saveVirtualFiles() {
+            if (!db) return;
+            const tx = db.transaction('settings', 'readwrite');
+            const dataToSave = files.map(f => ({ name: f.name, content: f.content }));
+            tx.objectStore('settings').put({ id: 'virtual_files', data: dataToSave });
+        }
+
+        async function saveCurrentFile() {
+            if (activeFileIndex < 0 || !files[activeFileIndex]) return;
+            const file = files[activeFileIndex];
+            file.content = codeEditorInstance.getValue();
+            
+            // FSAA連携: ローカルファイルに直接書き込む
+            if (file.handle) {
+                try {
+                    const options = { mode: 'readwrite' };
+                    if ((await file.handle.queryPermission(options)) !== 'granted') {
+                        if ((await file.handle.requestPermission(options)) !== 'granted') throw new Error("Permission denied");
+                    }
+                    const writable = await file.handle.createWritable();
+                    await writable.write(file.content);
+                    await writable.close();
+                    file.isDirty = false;
+                } catch (e) {
+                    console.error("FSAA Save Error:", e);
+                }
+            } else {
+                file.isDirty = false;
+            }
+            renderTabs();
+            saveVirtualFiles();
+        }
+
+        // FSAA: フォルダを開く
+        async function openDirectory() {
+            if (!('showDirectoryPicker' in window)) {
+                showToast("このブラウザはローカルフォルダ機能に未対応です。");
+                return;
+            }
+            try {
+                dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+                showToast("フォルダをスキャン中...");
+                files = [];
+                for await (const entry of dirHandle.values()) {
+                    if (entry.kind === 'file') {
+                        const file = await entry.getFile();
+                        const content = await file.text();
+                        files.push({ name: entry.name, content: content, handle: entry, isDirty: false });
+                    }
+                }
+                if (files.length === 0) {
+                    await createNewFile("main.py");
+                } else {
+                    activeFileIndex = 0;
+                    switchFile(0);
+                }
+                showToast("ワークスペースを開きました");
+            } catch (e) {
+                if (e.name !== 'AbortError') showToast("フォルダの読み込みに失敗しました");
+            }
+        }
+
+        async function createNewFile(defaultName = "") {
+            const name = prompt("新規ファイル名を入力してください", defaultName || "utils.py");
+            if (!name) return;
+            
+            let newHandle = null;
+            if (dirHandle) {
+                try {
+                    newHandle = await dirHandle.getFileHandle(name, { create: true });
+                } catch (e) {
+                    showToast("ファイル作成エラー: " + e.message);
+                    return;
+                }
+            }
+            files.push({ name: name, content: '', handle: newHandle, isDirty: false });
+            activeFileIndex = files.length - 1;
+            switchFile(activeFileIndex);
+            saveVirtualFiles();
+            showToast(`${name} を作成しました`);
+        }
+
+        async function deleteFile(index, event) {
+            event.stopPropagation();
+            const file = files[index];
+            if (!confirm(`${file.name} を削除しますか？`)) return;
+            
+            if (file.handle && dirHandle) {
+                try { await dirHandle.removeEntry(file.name); } 
+                catch (e) { console.error(e); showToast("ローカルファイルの削除失敗"); }
+            }
+            
+            files.splice(index, 1);
+            if (files.length === 0) files.push({ name: 'main.py', content: '', handle: null, isDirty: false });
+            if (activeFileIndex >= files.length) activeFileIndex = files.length - 1;
+            switchFile(activeFileIndex);
+            saveVirtualFiles();
+        }
+
+        function renderSidebar() {
+            const tree = document.getElementById('file-tree');
+            tree.innerHTML = files.map((f, i) => `
+                <div class="file-item ${i === activeFileIndex ? 'active' : ''}" onclick="switchFile(${i})">
+                    <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">📄 ${f.name}</span>
+                    <button class="btn-icon" style="font-size:12px; color:#ff6b6b; flex-shrink:0;" onclick="deleteFile(${i}, event)">🗑</button>
+                </div>
+            `).join('');
+            renderTabs();
+        }
+
+        function renderTabs() {
+            const tabs = document.getElementById('editor-tabs');
+            tabs.innerHTML = files.map((f, i) => `
+                <div class="tab ${i === activeFileIndex ? 'active' : ''}" onclick="switchFile(${i})">
+                    ${f.name} ${f.isDirty ? '<span style="color:var(--accent-blue)">*</span>' : ''}
+                </div>
+            `).join('');
+        }
+
+        function switchFile(index) {
+            if (index < 0 || index >= files.length) return;
+            
+            // 現在の入力を確定
+            if (activeFileIndex >= 0 && files[activeFileIndex]) {
+                files[activeFileIndex].content = codeEditorInstance.getValue();
+            }
+            
+            activeFileIndex = index;
+            codeEditorInstance.setValue(files[activeFileIndex].content);
+            codeEditorInstance.clearHistory(); // Undo履歴リセット
+            renderSidebar();
+            
+            // モバイル時はファイル選択後にサイドバーを閉じる
+            if (window.innerWidth <= 600) {
+                document.getElementById('sidebar').classList.remove('open');
+            }
+        }
+
+        function insertComment(text) {
+            if (!codeEditorInstance) return;
+            const selection = codeEditorInstance.getSelection();
+            if (selection && text === '# ') {
+                const commented = selection.split('\n').map(line => '# ' + line).join('\n');
+                codeEditorInstance.replaceSelection(commented);
+            } else {
+                codeEditorInstance.replaceSelection(text);
+            }
+            codeEditorInstance.focus();
+            saveCurrentFile();
+            showToast("コメントを挿入しました");
+        }
+
+        // --- 履歴管理 ---
+        let historyData = [];
+        function saveToHistory(prompt, codeResult) {
+            if (!db) return;
+            try {
+                const tx = db.transaction('history', 'readwrite');
+                tx.objectStore('history').add({ date: new Date().toISOString(), prompt, code: codeResult });
+            } catch (err) { console.error("履歴保存エラー:", err); }
+        }
+        
+        function openHistory() {
+            document.getElementById('history-modal').style.display = 'block';
+            if (!db) return;
+            const tx = db.transaction('history', 'readonly');
+            const req = tx.objectStore('history').getAll();
+            req.onsuccess = () => { historyData = req.result.reverse(); renderHistory(); };
+        }
+        
+        function renderHistory() {
+            const list = document.getElementById('history-list');
+            const query = document.getElementById('history-search').value.toLowerCase();
+            const filtered = historyData.filter(h => h.prompt.toLowerCase().includes(query) || h.code.toLowerCase().includes(query));
+            
+            if (filtered.length === 0) { list.innerHTML = '<p>履歴が見つかりません。</p>'; return; }
+            list.innerHTML = filtered.map(h => {
+                const safePrompt = h.prompt.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                const safeCode = h.code.substring(0, 100).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                return '<div style="border-bottom: 1px solid #444; padding: 10px 0;">' +
+                    '<div style="color: #aaa; font-size: 11px;">' + new Date(h.date).toLocaleString() + '</div>' +
+                    '<div style="margin: 4px 0;"><strong>Q:</strong> ' + safePrompt + '</div>' +
+                    '<div style="color: var(--accent-green); white-space: pre-wrap; background: #111; padding: 5px; border-radius: 4px;">' + safeCode + '...</div>' +
+                '</div>';
+            }).join('');
+        }
+
+        // --- ZIPエクスポート・インポート機能 ---
+        async function exportData() {
+            try {
+                const zip = new JSZip();
+                
+                if (activeFileIndex >= 0 && files[activeFileIndex]) {
+                    files[activeFileIndex].content = codeEditorInstance.getValue();
+                }
+
+                files.forEach(f => {
+                    if (f.name) zip.file(f.name, f.content);
+                });
+                
+                if (appSettings.pipPackages) zip.file("requirements.txt", appSettings.pipPackages);
+                if (appSettings.envVars) zip.file(".env", appSettings.envVars);
+                
+                const data = { settings: appSettings, timestamp: new Date().toISOString() };
+                zip.file("ai_settings.json", JSON.stringify(data, null, 2));
+
+                const blob = await zip.generateAsync({type: "blob"});
+                
+                if ('showSaveFilePicker' in window) {
+                    const handle = await window.showSaveFilePicker({
+                        suggestedName: 'workspace_backup.zip',
+                        types: [{ description: 'ZIP Archive', accept: { 'application/zip': ['.zip'] } }],
+                    });
+                    const writable = await handle.createWritable();
+                    await writable.write(blob);
+                    await writable.close();
+                    showToast("ローカルにZIP保存しました");
+                } else {
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(blob);
+                    a.download = 'workspace_backup.zip';
+                    a.click();
+                    showToast("ZIPダウンロードを開始しました");
+                }
+            } catch (err) {
+                if (err.name !== 'AbortError') { showToast("保存に失敗しました"); console.error(err); }
+            }
+        }
+
+        async function importData() {
+            if ('showOpenFilePicker' in window) {
+                try {
+                    const [fileHandle] = await window.showOpenFilePicker({
+                        types: [{ description: 'テキスト/JSON/Python', accept: { 'text/*': ['.txt', '.md', '.py'], 'application/json': ['.json'] } }]
+                    });
+                    const file = await fileHandle.getFile();
+                    const text = await file.text();
+                    processImportedText(file.name, text);
+                } catch (err) { if(err.name !== 'AbortError') showToast("読み込み失敗"); }
+            } else {
+                const input = document.createElement('input');
+                input.type = 'file'; input.accept = '.json,.txt,.md,.py';
+                input.onchange = e => {
+                    const file = e.target.files[0];
+                    if(!file) return;
+                    const reader = new FileReader();
+                    reader.onload = re => processImportedText(file.name, re.target.result);
+                    reader.readAsText(file);
+                };
+                input.click();
+            }
+        }
+
+        function processImportedText(filename, text) {
+            if (filename.endsWith('.json') && !filename.includes('settings')) {
+                try {
+                    const data = JSON.parse(text);
+                    if(data.code) text = data.code;
+                } catch(err) { }
+            }
+            codeEditorInstance.setValue(text);
+            if (activeFileIndex >= 0) files[activeFileIndex].content = text;
+            saveCurrentFile();
+            showToast("現在のタブに読み込みました");
+        }
+
+        // --- Python環境 ---
+        let pyodide;
+        window.onload = async () => {
+            // CodeMirror エディタ初期化
+            codeEditorInstance = CodeMirror.fromTextArea(document.getElementById('code'), {
+                mode: "python",
+                theme: "darcula",
+                lineNumbers: true,
+                indentUnit: 4,
+                matchBrackets: true,
+                lineWrapping: true
+            });
+
+            // 変更イベント監視（オートセーブ）
+            codeEditorInstance.on('change', () => {
+                if (activeFileIndex >= 0 && files[activeFileIndex]) {
+                    files[activeFileIndex].content = codeEditorInstance.getValue();
+                    if (!files[activeFileIndex].isDirty) {
+                        files[activeFileIndex].isDirty = true;
+                        renderTabs();
+                    }
+                    clearTimeout(autoSaveTimer);
+                    autoSaveTimer = setTimeout(saveCurrentFile, 2000);
+                }
+            });
+
+            await init();
+        };
+
+        async function init() {
+            await initDB();
+            
+            const statusText = document.getElementById('status-text');
+            const outputDiv = document.getElementById('output');
+
+            try {
+                statusText.innerHTML = "<span class='loader'></span> システム: Pyodideコアをダウンロード中...";
+                pyodide = await loadPyodide();
+                statusText.innerHTML = "<span class='loader'></span> システム: micropipを準備中...";
+                await pyodide.loadPackage("micropip");
+                statusText.innerHTML = "システム: 準備完了 ✅";
+                statusText.style.color = "#4CAF50";
+                showToast("Python環境の準備が完了しました！");
+            } catch (err) {
+                console.error("Pyodideロードエラー:", err);
+                statusText.innerText = "システム: エラー発生 - ロード失敗";
+                outputDiv.innerText = "Pyodideの読み込みに失敗しました。\n" + err.message;
+                outputDiv.style.color = "#ff6b6b";
+                pyodide = null;
+            }
+        }
+
+        // --- パッケージ自動検出 & インストール ---
+        const installedPackages = new Set(['micropip', 'pyodide', 'js', 'pyodide_js', 'sys', 'os', 'io', 'math', 'json', 're', 'time', 'datetime', 'random', 'collections']);
+        const IMPORT_TO_PACKAGE = { 'sklearn': 'scikit-learn', 'cv2': 'opencv-python', 'PIL': 'Pillow', 'bs4': 'beautifulsoup4', 'yaml': 'pyyaml' };
+
+        function detectImports(code) {
+            const imports = new Set();
+            const lines = code.split('\n');
+            for (const line of lines) {
+                const trimmed = line.trim();
+                let m = trimmed.match(/^import\s+([a-zA-Z0-9_]+)/);
+                if (m) imports.add(m[1]);
+                m = trimmed.match(/^from\s+([a-zA-Z0-9_]+)/);
+                if (m) imports.add(m[1]);
+            }
+            return Array.from(imports).filter(mod => !installedPackages.has(mod));
+        }
+
+        async function autoInstallPackages(packages, statusText) {
+            if (packages.length === 0) return;
+            const micropip = pyodide.pyimport("micropip");
+            for (const mod of packages) {
+                if (installedPackages.has(mod)) continue;
+                const pipName = IMPORT_TO_PACKAGE[mod] || mod;
+                statusText.innerHTML = "<span class='loader'></span> " + pipName + " をインストール中...";
+                try {
+                    await pyodide.loadPackage(mod);
+                    installedPackages.add(mod);
+                } catch (e1) {
+                    try {
+                        await micropip.install(pipName);
+                        installedPackages.add(mod);
+                        installedPackages.add(pipName);
+                    } catch (e2) {
+                        console.warn("インストール失敗:", pipName);
+                    }
+                }
+            }
+        }
+
+        async function runPython() {
+            if (activeFileIndex >= 0 && files[activeFileIndex]) {
+                files[activeFileIndex].content = codeEditorInstance.getValue();
+                saveVirtualFiles();
+            }
+
+            const code = codeEditorInstance.getValue();
+            const outputDiv = document.getElementById('output');
+            const statusText = document.getElementById('status-text');
+
+            if (!pyodide) { showToast("Python環境が準備できていません。"); return; }
+
+            statusText.innerHTML = "<span class='loader'></span> 環境構築中...";
+            outputDiv.innerText = "";
+            outputDiv.style.color = "var(--text-color)";
+
+            try {
+                // 自動検出とrequirementsの統合
+                const neededPkgs = detectImports(code);
+                const pipLines = appSettings.pipPackages.split('\n').map(l => l.trim()).filter(l => l);
+                const allPkgs = Array.from(new Set([...neededPkgs, ...pipLines]));
+                
+                if (allPkgs.length > 0) {
+                    await autoInstallPackages(allPkgs, statusText);
+                }
+
+                // .env設定のロード
+                if (appSettings.envVars) {
+                    const envLines = appSettings.envVars.split('\n');
+                    let envCode = 'import os\n';
+                    envLines.forEach(line => {
+                        const parts = line.split('=');
+                        if (parts.length >= 2) {
+                            const key = parts[0].trim();
+                            const val = parts.slice(1).join('=').trim();
+                            envCode += `os.environ["${key}"] = """${val}"""\n`;
+                        }
+                    });
+                    await pyodide.runPythonAsync(envCode);
+                }
+
+                statusText.innerHTML = "<span class='loader'></span> コード実行中...";
+
+                await pyodide.runPythonAsync("import sys, io\nsys.stdout = io.StringIO()\nsys.stderr = io.StringIO()");
+                await pyodide.runPythonAsync(code);
+                const stdout = await pyodide.runPythonAsync("sys.stdout.getvalue()");
+                const stderr = await pyodide.runPythonAsync("sys.stderr.getvalue()");
+
+                if (stdout) outputDiv.innerText += stdout;
+                if (stderr) {
+                    outputDiv.innerText += "\n[Error]\n" + stderr;
+                    outputDiv.style.color = "#ff6b6b";
+                    statusText.innerText = "システム: エラー終了";
+                } else {
+                    statusText.innerText = "システム: 実行完了 ✅";
+                    showToast("実行完了");
+                }
+            } catch (err) {
+                outputDiv.innerText = "実行エラー:\n" + err.message;
+                outputDiv.style.color = "#ff6b6b";
+                statusText.innerText = "システム: エラー";
+            }
+        }
+
+        // --- AI連携 ---
+        function stripCodeFences(text) { return text.replace(/```python\s*/gi, '').replace(/```\s*/g, '').trim(); }
+
+        async function callGeminiAPI(apiKey, model, prompt, systemPrompt, codeContext) {
+            const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + apiKey;
+            const body = {
+                system_instruction: { parts: [{text: systemPrompt}] },
+                contents: [{ parts: [{ text: "現在のファイル内容:\n\n" + codeContext + "\n\n指示:\n" + prompt }] }]
+            };
+            const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+            const data = await res.json();
+            if (data.error) throw new Error(data.error.message);
+            return stripCodeFences(data.candidates[0].content.parts[0].text);
+        }
+
+        async function askAI() {
+            const fullCode = codeEditorInstance.getValue();
+            const lines = fullCode.split('\n');
+            let targetLineIndex = -1;
+            let aiPromptText = "";
+            
+            for (let i = 0; i < lines.length; i++) {
+                if (lines[i].trim().startsWith('# AI:')) {
+                    targetLineIndex = i; aiPromptText = lines[i].replace('# AI:', '').trim(); break;
+                }
+            }
+            
+            const generalPrompt = document.getElementById('ai-prompt').value;
+            const finalPrompt = aiPromptText ? aiPromptText : generalPrompt;
+            
+            if (!finalPrompt) { showToast("指示を入力するか '# AI: 指示' を記述してください"); return; }
+            
+            document.getElementById('status-text').innerHTML = "<span class='loader'></span> AI生成中...";
+            document.getElementById('btn-ai').disabled = true;
+            requestWakeLock();
+            
+            try {
+                let aiResponse;
+                if (appSettings.apiKey && appSettings.model.includes('gemini')) {
+                    aiResponse = await callGeminiAPI(appSettings.apiKey, appSettings.model, finalPrompt, appSettings.systemPrompt, fullCode);
+                } else {
+                    await new Promise(r => setTimeout(r, 1500));
+                    aiResponse = '# [AI Mock]\nfor i in range(3):\n    print("Success")';
+                }
+
+                if (targetLineIndex !== -1) {
+                    lines.splice(targetLineIndex + 1, 0, aiResponse);
+                    codeEditorInstance.setValue(lines.join('\n'));
+                } else {
+                    codeEditorInstance.setValue(fullCode + '\n\n' + aiResponse);
+                }
+                
+                saveCurrentFile();
+                saveToHistory(finalPrompt, aiResponse);
+                document.getElementById('status-text').innerText = "システム: 生成完了 ✅";
+                showToast("AIコード生成完了");
+            } catch (err) {
+                document.getElementById('status-text').innerText = "システム: AIエラー";
+                showToast("APIエラー: " + err.message);
+            } finally {
+                releaseWakeLock();
+                document.getElementById('btn-ai').disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
