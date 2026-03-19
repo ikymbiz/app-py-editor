@@ -9,7 +9,7 @@
     <link rel="manifest" href='data:application/manifest+json,{"name":"AI Python Editor","short_name":"AI Editor","display":"standalone","background_color":"#1e1e1e","theme_color":"#1e1e1e"}'>
     <title>Mobile Python AI Editor</title>
     
-    <!-- CodeMirror (シンタックスハイライト・行番号) -->
+    <!-- CodeMirror -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/codemirror.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/theme/darcula.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/hint/show-hint.min.css">
@@ -20,7 +20,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/hint/show-hint.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/hint/anyword-hint.min.js"></script>
     
-    <!-- 検索・置換・コメント・自動括弧機能用アドオン -->
+    <!-- アドオン -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/search/searchcursor.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/search/search.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.15/addon/dialog/dialog.min.js"></script>
@@ -45,7 +45,7 @@
             background-color: var(--bg-color); color: var(--text-color);
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             display: flex; flex-direction: column; height: 100dvh; box-sizing: border-box;
-            overflow: hidden; /* スマホ画面で全体スクロールさせない全画面表示 */
+            overflow: hidden;
         }
         .header-container { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-shrink: 0; }
         h1 { font-size: 16px; margin: 0; color: #fff; text-align: center; flex-grow: 1; }
@@ -54,15 +54,11 @@
         input[type="text"] {
             width: 100%; box-sizing: border-box; padding: 10px; margin-bottom: 6px;
             background-color: var(--panel-bg); color: #fff;
-            border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px;
-            flex-shrink: 0;
+            border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; flex-shrink: 0;
         }
         
-        /* エディタツールバー (2段構成) */
         .editor-tools-container { display: flex; flex-direction: column; gap: 4px; margin-bottom: 6px; flex-shrink: 0; }
-        .editor-tools { 
-            display: flex; gap: 5px; overflow-x: auto; white-space: nowrap; scrollbar-width: none; padding-bottom: 2px;
-        }
+        .editor-tools { display: flex; gap: 5px; overflow-x: auto; white-space: nowrap; scrollbar-width: none; padding-bottom: 2px; }
         .editor-tools::-webkit-scrollbar { display: none; }
         .editor-tools button {
             flex-shrink: 0; padding: 6px 12px; font-size: 14px; font-family: monospace; font-weight: bold;
@@ -72,18 +68,13 @@
         .editor-tools button:active { opacity: 0.8; background-color: #555; }
         .editor-tools button.btn-special { background-color: #385166; color: #fff; font-family: inherit; font-size: 13px;}
 
-        /* メインレイアウト（絶対配置サイドバー＋エディタ） */
-        .main-layout {
-            display: flex; flex-grow: 1; overflow: hidden; position: relative; margin-bottom: 6px;
-        }
+        .main-layout { display: flex; flex-grow: 1; overflow: hidden; position: relative; margin-bottom: 6px; }
         
-        /* サイドバー（オーバーレイ式） */
         .sidebar {
             position: absolute; z-index: 100; left: 0; top: 0; height: 100%; transform: translateX(-110%);
             width: 240px; background-color: var(--panel-bg); border-right: 1px solid var(--border-color);
             display: flex; flex-direction: column; padding: 10px; box-sizing: border-box;
-            transition: transform 0.3s ease; overflow-y: auto; flex-shrink: 0;
-            box-shadow: 2px 0 10px rgba(0,0,0,0.5);
+            transition: transform 0.3s ease; overflow-y: auto; flex-shrink: 0; box-shadow: 2px 0 10px rgba(0,0,0,0.5);
         }
         .sidebar.open { transform: translateX(0); }
         .sidebar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
@@ -104,7 +95,6 @@
         .file-item:hover, .file-item.active { background: #555; border-left: 3px solid var(--accent-blue); }
         .file-item-actions { display: flex; flex-shrink: 0; }
         
-        /* サイドバー表示時の半透明オーバーレイ（タップで閉じる） */
         .sidebar-overlay {
             display: none; position: absolute; z-index: 90; left: 0; top: 0; width: 100%; height: 100%;
             background-color: rgba(0,0,0,0.5);
@@ -115,19 +105,21 @@
         .editor-tabs { display: flex; gap: 2px; overflow-x: auto; margin-bottom: 0; scrollbar-width: none; flex-shrink: 0; }
         .editor-tabs::-webkit-scrollbar { display: none; }
         .tab {
-            padding: 8px 12px; background: #333; border-radius: 6px 6px 0 0; font-size: 13px;
+            padding: 8px 8px 8px 12px; background: #333; border-radius: 6px 6px 0 0; font-size: 13px;
             cursor: pointer; white-space: nowrap; border: 1px solid var(--border-color); border-bottom: none;
             color: #aaa; display: flex; align-items: center; gap: 5px;
         }
         .tab.active { background: #2b2b2b; color: #fff; border-top: 2px solid var(--accent-blue); }
+        .tab .close-btn {
+            margin-left: 4px; font-size: 14px; color: #888; cursor: pointer;
+            display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%;
+        }
+        .tab .close-btn:hover { background: #555; color: #fff; }
         
-        /* CodeMirror スタイル調整 */
         .CodeMirror {
-            width: 100%; flex-grow: 1; height: 100%; 
-            box-sizing: border-box;
+            width: 100%; flex-grow: 1; height: 100%; box-sizing: border-box;
             border: 1px solid var(--border-color); border-top: none; border-radius: 0 8px 8px 8px;
-            font-family: ui-monospace, "Courier New", Courier, monospace; font-size: 14px;
-            z-index: 0;
+            font-family: ui-monospace, "Courier New", Courier, monospace; font-size: 14px; z-index: 0;
         }
         .CodeMirror-hints { background: var(--panel-bg); border: 1px solid var(--border-color); color: #fff; font-size: 14px; z-index: 6000; }
         .CodeMirror-hint { color: #ccc; }
@@ -136,10 +128,7 @@
         .CodeMirror-dialog input { background: #1e1e1e; color: #fff; border: 1px solid #555; padding: 4px; border-radius: 4px; }
         
         .controls { display: flex; gap: 8px; margin-bottom: 6px; flex-shrink: 0; }
-        .controls button {
-            flex: 1; padding: 12px; font-size: 14px; font-weight: bold;
-            border: none; border-radius: 8px; color: white; cursor: pointer;
-        }
+        .controls button { flex: 1; padding: 12px; font-size: 14px; font-weight: bold; border: none; border-radius: 8px; color: white; cursor: pointer; }
         .btn-run { background-color: var(--accent-blue); }
         .btn-ai { background-color: var(--accent-green); }
         .controls button:active { opacity: 0.8; transform: scale(0.98); }
@@ -147,19 +136,14 @@
         .output-container {
             height: 22%; min-height: 80px; flex-shrink: 0; background-color: #000;
             border: 1px solid var(--border-color); border-radius: 8px; padding: 10px;
-            overflow-y: auto; font-family: monospace; font-size: 13px;
-            white-space: pre-wrap; word-wrap: break-word; color: #fff;
+            overflow-y: auto; font-family: monospace; font-size: 13px; white-space: pre-wrap; word-wrap: break-word; color: #fff;
         }
         .status { font-size: 12px; color: #888; margin-bottom: 5px; border-bottom: 1px solid #333; padding-bottom: 3px;}
         
-        .modal {
-            display: none; position: fixed; z-index: 3000; left: 0; top: 0;
-            width: 100%; height: 100%; background-color: rgba(0,0,0,0.7);
-        }
+        .modal { display: none; position: fixed; z-index: 3000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); }
         .modal-content {
             background-color: var(--panel-bg); margin: 5% auto; padding: 20px;
-            border: 1px solid #555; width: 95%; max-width: 500px; border-radius: 8px; box-sizing: border-box; 
-            max-height: 90vh; overflow-y: auto;
+            border: 1px solid #555; width: 95%; max-width: 500px; border-radius: 8px; box-sizing: border-box; max-height: 90vh; overflow-y: auto;
         }
         .modal-content h2 { margin-top: 0; font-size: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; }
         .modal-content label { display: block; margin-top: 15px; font-size: 13px; color: #bbb; font-weight: bold; }
@@ -184,18 +168,15 @@
         }
         #toast.show { visibility: visible; opacity: 1; bottom: 50px; }
         .loader {
-            display: inline-block; width: 12px; height: 12px;
-            border: 2px solid #fff; border-bottom-color: transparent;
+            display: inline-block; width: 12px; height: 12px; border: 2px solid #fff; border-bottom-color: transparent;
             border-radius: 50%; animation: rotation 1s linear infinite; margin-right: 5px; vertical-align: middle;
         }
         @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* 長押し予約語メニュー (フローティング) */
         .floating-menu {
             display: none; position: fixed; z-index: 5000;
             background: rgba(45, 45, 45, 0.95); border: 1px solid var(--border-color); border-radius: 8px;
-            padding: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.7);
-            grid-template-columns: repeat(3, 1fr); gap: 8px;
+            padding: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.7); grid-template-columns: repeat(3, 1fr); gap: 8px;
             width: 280px; backdrop-filter: blur(5px);
         }
         .floating-menu button {
@@ -215,9 +196,7 @@
 
     <input type="text" id="ai-prompt" placeholder="✨ AIに指示 (例: 1から10まで足すコードを書いて)">
     
-    <!-- スマホコーディング特化のツールバー (2段構成) -->
     <div class="editor-tools-container">
-        <!-- 1段目: 頻繁な入力補助 -->
         <div class="editor-tools">
             <button onclick="smartTab()" title="Tab/Indent">Tab</button>
             <button onclick="insertWrap('(', ')')">()</button>
@@ -228,7 +207,6 @@
             <button onclick="insertText(':')">:</button>
             <button onclick="insertText('=')">=</button>
         </div>
-        <!-- 2段目: アクション/ユーティリティ (指定順序) -->
         <div class="editor-tools">
             <button onclick="toggleComment()"># コメント</button>
             <button onclick="insertComment('# AI: ')" class="btn-special"># AI指示</button>
@@ -241,24 +219,23 @@
     </div>
 
     <div class="main-layout">
-        <!-- サイドバー表示時のオーバーレイ（タップで閉じる） -->
         <div id="sidebar-overlay" class="sidebar-overlay" onclick="closeSidebar()"></div>
 
-        <!-- ファイルエクスプローラー (サイドバー) -->
+        <!-- ワークスペース (サイドバー) -->
         <div id="sidebar" class="sidebar">
             <div class="sidebar-header">
                 <h3>📁 ワークスペース</h3>
                 <button class="btn-icon" onclick="closeSidebar()" title="閉じる">✖</button>
             </div>
-            <!-- 目立つ新規ファイル作成ボタン -->
-            <button class="btn-action" onclick="createNewFile()" style="background-color: var(--accent-blue); padding: 10px; font-size: 14px;">＋ 新規ファイル作成</button>
+            <div style="display:flex; gap:5px; margin-bottom: 5px;">
+                <button class="btn-action" onclick="createNewFile()" style="background-color: var(--accent-blue); padding: 8px; flex:1;">＋ ファイル</button>
+                <button class="btn-action" onclick="createNewFolder()" style="background-color: #555; padding: 8px; flex:1;">＋ フォルダ</button>
+            </div>
             <div id="file-tree" class="file-tree"></div>
         </div>
 
-        <!-- エディタ領域 -->
         <div class="editor-area">
             <div id="editor-tabs" class="editor-tabs"></div>
-            <!-- CodeMirror 用テキストエリア -->
             <textarea id="code" autocapitalize="off" autocomplete="off" spellcheck="false" autocorrect="off"></textarea>
         </div>
     </div>
@@ -275,7 +252,6 @@
 
     <div id="toast"></div>
 
-    <!-- 長押し予約語メニュー (フローティング) -->
     <div id="floating-keyword-menu" class="floating-menu">
         <button onclick="insertKeywordAdvanced('def')">def</button>
         <button onclick="insertKeywordAdvanced('class')">class</button>
@@ -294,7 +270,6 @@
         <button onclick="insertKeywordAdvanced('print')">print()</button>
     </div>
 
-    <!-- 設定モーダル -->
     <div id="settings-modal" class="modal">
         <div class="modal-content">
             <h2>⚙️ システム設定</h2>
@@ -306,7 +281,6 @@
                 <button id="tab-btn-data" onclick="switchSettingTab('data')">データ管理</button>
             </div>
 
-            <!-- AI設定 -->
             <div id="setting-ai" class="setting-panel">
                 <label>AIプロバイダー / モデル</label>
                 <div style="display:flex; gap:5px; margin-top:5px;">
@@ -319,26 +293,22 @@
                     </select>
                 </div>
                 <input type="text" id="setting-custom-model" placeholder="カスタムモデル名を直接入力（優先）" style="margin-top:5px;">
-                
                 <label>APIキー (IndexedDBに安全にローカル保存)</label>
                 <input type="password" id="setting-apikey" placeholder="AI API Keyを入力">
                 <label>システムプロンプト / 役割設定</label>
                 <textarea id="setting-system-prompt" class="setting-area" rows="4"></textarea>
             </div>
 
-            <!-- pip設定 -->
             <div id="setting-pip" class="setting-panel" style="display:none;">
-                <p style="font-size:12px; color:#aaa; margin-top:0;">1行に1つのパッケージ名を入力。Python実行前に自動インストールされます（requirements.txt 相当）。</p>
+                <p style="font-size:12px; color:#aaa; margin-top:0;">1行に1つのパッケージ名を入力。Python実行前に自動インストールされます。</p>
                 <textarea id="setting-pip-packages" class="setting-area" rows="6" placeholder="numpy&#10;pandas&#10;requests"></textarea>
             </div>
 
-            <!-- env設定 -->
             <div id="setting-env" class="setting-panel" style="display:none;">
                 <p style="font-size:12px; color:#aaa; margin-top:0;">KEY=VALUE の形式で入力。Python実行時に <code>os.environ</code> にロードされます。</p>
                 <textarea id="setting-env-vars" class="setting-area" rows="6" placeholder="API_KEY=your_secret_key&#10;DEBUG=True"></textarea>
             </div>
 
-            <!-- データ管理 (ワークスペース/インポート/エクスポート/履歴削除) -->
             <div id="setting-data" class="setting-panel" style="display:none;">
                 <label>ローカルフォルダ連携 (FSAA)</label>
                 <p style="font-size:11px; color:#aaa; margin-top:0;">ブラウザが対応している場合、端末内のフォルダを直接編集できます。</p>
@@ -351,7 +321,6 @@
                 </div>
                 
                 <label style="margin-top:20px;">履歴データ管理</label>
-                <p style="font-size:11px; color:#aaa; margin-top:0;">過去のAI生成プロンプトとコードの履歴をクリアします。</p>
                 <button class="btn-action" onclick="clearHistory()" style="padding: 12px; background:#a33;">🗑 履歴データをすべて削除</button>
             </div>
 
@@ -363,10 +332,8 @@
     </div>
 
     <script>
-        // --- CodeMirror インスタンス ---
         let codeEditorInstance;
 
-        // --- 共通ユーティリティ ---
         function showToast(msg) {
             const toast = document.getElementById('toast');
             toast.innerText = msg;
@@ -382,216 +349,117 @@
             if (wakeLock !== null) wakeLock.release().then(() => wakeLock = null);
         }
 
-        // --- UI操作 (サイドバー) ---
-        function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('sidebar-overlay');
-            sidebar.classList.toggle('open');
-            overlay.classList.toggle('show');
-        }
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('sidebar-overlay').classList.toggle('show'); }
+        function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebar-overlay').classList.remove('show'); }
 
-        function closeSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('sidebar-overlay');
-            sidebar.classList.remove('open');
-            overlay.classList.remove('show');
-        }
-
-        // --- 設定タブ ---
         function switchSettingTab(tabId) {
             document.querySelectorAll('.setting-panel').forEach(p => p.style.display = 'none');
             document.querySelectorAll('.settings-tabs button').forEach(b => b.classList.remove('active'));
             document.getElementById('setting-' + tabId).style.display = 'block';
             document.getElementById('tab-btn-' + tabId).classList.add('active');
         }
-
         function openSettings() { document.getElementById('settings-modal').style.display = 'block'; }
         function closeSettings() { document.getElementById('settings-modal').style.display = 'none'; }
 
-        // --- エディタ補助機能 ---
         function smartTab() {
             if (!codeEditorInstance) return;
-            const cm = codeEditorInstance;
-            if (cm.somethingSelected()) {
-                cm.execCommand("indentMore");
-            } else {
-                cm.replaceSelection("    ");
-            }
-            cm.focus();
-        }
-
-        function insertText(text) {
-            if (!codeEditorInstance) return;
-            codeEditorInstance.replaceSelection(text);
+            codeEditorInstance.somethingSelected() ? codeEditorInstance.execCommand("indentMore") : codeEditorInstance.replaceSelection("    ");
             codeEditorInstance.focus();
         }
-
+        function insertText(text) { if(codeEditorInstance) { codeEditorInstance.replaceSelection(text); codeEditorInstance.focus(); } }
         function insertWrap(start, end) {
             if (!codeEditorInstance) return;
-            const selection = codeEditorInstance.getSelection();
-            if (selection) {
-                codeEditorInstance.replaceSelection(start + selection + end);
-            } else {
+            const sel = codeEditorInstance.getSelection();
+            if (sel) codeEditorInstance.replaceSelection(start + sel + end);
+            else {
                 const pos = codeEditorInstance.getCursor();
                 codeEditorInstance.replaceRange(start + end, pos);
                 codeEditorInstance.setCursor({line: pos.line, ch: pos.ch + start.length});
             }
             codeEditorInstance.focus();
         }
-
         function insertComment(text) {
             if (!codeEditorInstance) return;
-            const selection = codeEditorInstance.getSelection();
-            if (selection && text.trim() === '#') {
-                const commented = selection.split('\n').map(line => '# ' + line).join('\n');
-                codeEditorInstance.replaceSelection(commented);
-            } else {
+            const sel = codeEditorInstance.getSelection();
+            if (sel && text.trim() === '#') codeEditorInstance.replaceSelection(sel.split('\n').map(l => '# ' + l).join('\n'));
+            else {
                 const pos = codeEditorInstance.getCursor();
-                if (pos.ch === 0) {
-                    codeEditorInstance.replaceSelection(text);
-                } else {
-                    codeEditorInstance.replaceSelection('\n' + text);
-                }
+                codeEditorInstance.replaceSelection(pos.ch === 0 ? text : '\n' + text);
             }
             codeEditorInstance.focus();
             showToast("AI指示用コメントを挿入しました");
         }
-
         function undo() { if(codeEditorInstance) codeEditorInstance.undo(); }
         function redo() { if(codeEditorInstance) codeEditorInstance.redo(); }
         function execSearch() { if(codeEditorInstance) codeEditorInstance.execCommand("find"); }
         function execReplace() { if(codeEditorInstance) codeEditorInstance.execCommand("replace"); }
         function toggleComment() { if(codeEditorInstance) codeEditorInstance.execCommand("toggleComment"); }
 
-        // --- 予約語フローティングメニューと高度な挿入ロジック (長押し検知) ---
-        let longPressTimer;
-        let touchStartX, touchStartY;
-        const LONG_PRESS_DURATION = 500; // 500ms
-
+        let longPressTimer, touchStartX, touchStartY;
         function onTouchStart(e) {
             if (e.touches.length > 1) return;
-            touchStartX = e.touches[0].clientX;
-            touchStartY = e.touches[0].clientY;
-            longPressTimer = setTimeout(() => {
-                showKeywordMenu(touchStartX, touchStartY);
-            }, LONG_PRESS_DURATION);
+            touchStartX = e.touches[0].clientX; touchStartY = e.touches[0].clientY;
+            longPressTimer = setTimeout(() => { showKeywordMenu(touchStartX, touchStartY); }, 500);
         }
-
         function onTouchMove(e) {
             if (!touchStartX || !touchStartY) return;
-            const dx = Math.abs(e.touches[0].clientX - touchStartX);
-            const dy = Math.abs(e.touches[0].clientY - touchStartY);
-            if (dx > 10 || dy > 10) {
-                clearTimeout(longPressTimer);
-            }
+            if (Math.abs(e.touches[0].clientX - touchStartX) > 10 || Math.abs(e.touches[0].clientY - touchStartY) > 10) clearTimeout(longPressTimer);
         }
-
-        function onTouchEnd() {
-            clearTimeout(longPressTimer);
-        }
-
+        function onTouchEnd() { clearTimeout(longPressTimer); }
         function showKeywordMenu(x, y) {
             const menu = document.getElementById('floating-keyword-menu');
             menu.style.display = 'grid';
-            let menuX = x - 140; 
-            let menuY = y - 140; 
-            if (menuX < 10) menuX = 10;
+            let menuX = Math.max(10, x - 140); 
             if (menuX + 280 > window.innerWidth) menuX = window.innerWidth - 290;
-            if (menuY < 50) menuY = y + 20; 
-            
-            menu.style.left = menuX + 'px';
-            menu.style.top = menuY + 'px';
+            menu.style.left = menuX + 'px'; menu.style.top = Math.max(y + 20, 50) + 'px';
             if (navigator.vibrate) navigator.vibrate(50);
         }
-
         function insertKeywordAdvanced(type) {
             if (!codeEditorInstance) return;
-            const cm = codeEditorInstance;
-            let textToInsert = "";
-            let cursorOffsetCh = 0;
-
+            let text = type, offset = 0;
             switch(type) {
-                case 'def': textToInsert = "def ():"; cursorOffsetCh = -3; break;
-                case 'class': textToInsert = "class :"; cursorOffsetCh = -1; break;
-                case 'if': textToInsert = "if :"; cursorOffsetCh = -1; break;
-                case 'elif': textToInsert = "elif :"; cursorOffsetCh = -1; break;
-                case 'else': textToInsert = "else:"; cursorOffsetCh = 0; break;
-                case 'for': textToInsert = "for  in :"; cursorOffsetCh = -5; break;
-                case 'while': textToInsert = "while :"; cursorOffsetCh = -1; break;
-                case 'return': textToInsert = "return "; break;
-                case 'import': textToInsert = "import "; break;
-                case 'from': textToInsert = "from  import "; cursorOffsetCh = -8; break;
-                case 'print': textToInsert = "print()"; cursorOffsetCh = -1; break;
-                default: textToInsert = type; break;
+                case 'def': text = "def ():"; offset = -3; break;
+                case 'class': text = "class :"; offset = -1; break;
+                case 'if': text = "if :"; offset = -1; break;
+                case 'elif': text = "elif :"; offset = -1; break;
+                case 'else': text = "else:"; break;
+                case 'for': text = "for  in :"; offset = -5; break;
+                case 'while': text = "while :"; offset = -1; break;
+                case 'return': text = "return "; break;
+                case 'import': text = "import "; break;
+                case 'from': text = "from  import "; offset = -8; break;
+                case 'print': text = "print()"; offset = -1; break;
             }
-
-            cm.replaceSelection(textToInsert);
-            if (cursorOffsetCh !== 0) {
-                const newPos = cm.getCursor();
-                cm.setCursor({ line: newPos.line, ch: newPos.ch + cursorOffsetCh });
-            }
-            cm.focus();
-            closeKeywordMenu();
+            codeEditorInstance.replaceSelection(text);
+            if (offset !== 0) { const p = codeEditorInstance.getCursor(); codeEditorInstance.setCursor({ line: p.line, ch: p.ch + offset }); }
+            codeEditorInstance.focus(); closeKeywordMenu();
         }
+        function closeKeywordMenu() { document.getElementById('floating-keyword-menu').style.display = 'none'; }
+        document.addEventListener('touchstart', (e) => { const m = document.getElementById('floating-keyword-menu'); if (m.style.display === 'grid' && !m.contains(e.target)) closeKeywordMenu(); }, {passive: true});
+        document.addEventListener('mousedown', (e) => { const m = document.getElementById('floating-keyword-menu'); if (m.style.display === 'grid' && !m.contains(e.target)) closeKeywordMenu(); });
 
-        function closeKeywordMenu() {
-            document.getElementById('floating-keyword-menu').style.display = 'none';
-        }
-
-        // メニュー外タップで閉じる
-        document.addEventListener('touchstart', (e) => {
-            const menu = document.getElementById('floating-keyword-menu');
-            if (menu.style.display === 'grid' && !menu.contains(e.target)) {
-                closeKeywordMenu();
-            }
-        }, {passive: true});
-        document.addEventListener('mousedown', (e) => {
-            const menu = document.getElementById('floating-keyword-menu');
-            if (menu.style.display === 'grid' && !menu.contains(e.target)) {
-                closeKeywordMenu();
-            }
-        });
-
-        // --- データベース (IndexedDB) & 設定管理 ---
         let db;
-        let appSettings = { 
-            model: 'gemini-2.5-flash',
-            customModel: '',
-            apiKey: '', 
-            systemPrompt: 'あなたはプロのPythonエンジニアです。簡潔で正確なコードを提供し、ユーザーの指示に従ってください。',
-            pipPackages: '',
-            envVars: ''
-        };
+        let appSettings = { model: 'gemini-2.5-flash', customModel: '', apiKey: '', systemPrompt: 'あなたはプロのPythonエンジニアです。簡潔で正確なコードを提供し、ユーザーの指示に従ってください。', pipPackages: '', envVars: '' };
         
         function initDB() {
-            return new Promise((resolve, reject) => {
+            return new Promise((resolve) => {
                 const req = indexedDB.open('AIPythonEditorDB', 2);
                 req.onupgradeneeded = (e) => {
                     const database = e.target.result;
                     if (!database.objectStoreNames.contains('settings')) database.createObjectStore('settings', { keyPath: 'id' });
                     if (!database.objectStoreNames.contains('history')) database.createObjectStore('history', { keyPath: 'id', autoIncrement: true });
                 };
-                req.onsuccess = (e) => {
-                    db = e.target.result;
-                    loadSettings();
-                    loadVirtualFiles();
-                    resolve();
-                };
-                req.onerror = (e) => {
-                    console.error("IndexedDB初期化エラー:", e);
-                    resolve();
-                };
+                req.onsuccess = (e) => { db = e.target.result; loadSettings(); loadVirtualFiles(); resolve(); };
+                req.onerror = () => resolve();
             });
         }
-
         function loadSettings() {
             if (!db) return;
             try {
                 const tx = db.transaction('settings', 'readonly');
-                const req = tx.objectStore('settings').get('user_settings');
-                req.onsuccess = () => {
-                    if (req.result) {
-                        appSettings = { ...appSettings, ...req.result.data };
+                tx.objectStore('settings').get('user_settings').onsuccess = (e) => {
+                    if (e.target.result) {
+                        appSettings = { ...appSettings, ...e.target.result.data };
                         document.getElementById('setting-model').value = appSettings.model;
                         document.getElementById('setting-custom-model').value = appSettings.customModel || '';
                         document.getElementById('setting-apikey').value = appSettings.apiKey;
@@ -600,9 +468,8 @@
                         document.getElementById('setting-env-vars').value = appSettings.envVars || '';
                     }
                 };
-            } catch (err) { console.error("設定読み込みエラー:", err); }
+            } catch (err) {}
         }
-
         function saveSettings() {
             appSettings.model = document.getElementById('setting-model').value;
             appSettings.customModel = document.getElementById('setting-custom-model').value;
@@ -610,16 +477,11 @@
             appSettings.systemPrompt = document.getElementById('setting-system-prompt').value;
             appSettings.pipPackages = document.getElementById('setting-pip-packages').value;
             appSettings.envVars = document.getElementById('setting-env-vars').value;
-            
-            if (db) {
-                const tx = db.transaction('settings', 'readwrite');
-                tx.objectStore('settings').put({ id: 'user_settings', data: appSettings });
-            }
-            showToast('設定を保存しました');
-            closeSettings();
+            if (db) db.transaction('settings', 'readwrite').objectStore('settings').put({ id: 'user_settings', data: appSettings });
+            showToast('設定を保存しました'); closeSettings();
         }
 
-        // --- ファイル/ワークスペース管理 (仮想 & FSAA) ---
+        // --- フォルダ・ファイル管理 ---
         let dirHandle = null;
         let files = []; 
         let activeFileIndex = -1;
@@ -628,363 +490,369 @@
         function loadVirtualFiles() {
             if (!db) return defaultFilesInit();
             const tx = db.transaction('settings', 'readonly');
-            const req = tx.objectStore('settings').get('virtual_files');
-            req.onsuccess = () => {
-                if (req.result && req.result.data && req.result.data.length > 0) {
-                    files = req.result.data;
-                    files.forEach(f => f.isDirty = false);
-                } else {
-                    defaultFilesInit();
-                }
-                activeFileIndex = 0;
-                switchFile(0);
+            tx.objectStore('settings').get('virtual_files').onsuccess = (e) => {
+                const res = e.target.result;
+                if (res && res.data && res.data.length > 0) {
+                    files = res.data.map(f => ({
+                        type: f.type || 'file', name: f.name, path: f.path || '/' + f.name,
+                        content: f.content || '', handle: null, isDirty: false,
+                        isOpen: f.isOpen !== false, isExpanded: !!f.isExpanded
+                    }));
+                } else defaultFilesInit();
+                
+                const openIdx = files.findIndex(f => f.type === 'file' && f.isOpen);
+                activeFileIndex = openIdx >= 0 ? openIdx : -1;
+                switchFile(activeFileIndex);
+                renderSidebar();
             };
-            req.onerror = defaultFilesInit;
+            tx.objectStore('settings').get('virtual_files').onerror = defaultFilesInit;
         }
 
         function defaultFilesInit() {
-            files = [{ name: 'main.py', content: '# ここにPythonコードを書きます\nprint("スマホからこんにちは！")\n', handle: null, isDirty: false }];
-            activeFileIndex = 0;
-            switchFile(0);
+            files = [{ type: 'file', name: 'main.py', path: '/main.py', content: '# ここにPythonコードを書きます\nprint("スマホからこんにちは！")\n', handle: null, isDirty: false, isOpen: true }];
+            activeFileIndex = 0; switchFile(0);
         }
 
         function saveVirtualFiles() {
             if (!db) return;
             const tx = db.transaction('settings', 'readwrite');
-            const dataToSave = files.map(f => ({ name: f.name, content: f.content }));
+            const dataToSave = files.map(f => ({
+                type: f.type || 'file', name: f.name, path: f.path || '/' + f.name, content: f.content || '',
+                isOpen: f.isOpen !== false, isExpanded: !!f.isExpanded
+            }));
             tx.objectStore('settings').put({ id: 'virtual_files', data: dataToSave });
         }
 
         async function saveCurrentFile() {
-            if (activeFileIndex < 0 || !files[activeFileIndex]) return;
+            if (activeFileIndex < 0 || !files[activeFileIndex] || files[activeFileIndex].type !== 'file') return;
             const file = files[activeFileIndex];
             file.content = codeEditorInstance.getValue();
             
             if (file.handle) {
                 try {
-                    const options = { mode: 'readwrite' };
-                    if ((await file.handle.queryPermission(options)) !== 'granted') {
-                        if ((await file.handle.requestPermission(options)) !== 'granted') throw new Error("Permission denied");
-                    }
+                    const opts = { mode: 'readwrite' };
+                    if ((await file.handle.queryPermission(opts)) !== 'granted') await file.handle.requestPermission(opts);
                     const writable = await file.handle.createWritable();
                     await writable.write(file.content);
                     await writable.close();
                     file.isDirty = false;
-                } catch (e) {
-                    console.error("FSAA Save Error:", e);
+                } catch (e) { console.error("FSAA Save Error:", e); }
+            } else file.isDirty = false;
+            
+            renderTabs(); saveVirtualFiles();
+        }
+
+        async function scanDirectory(dh, currentPath = '') {
+            for await (const entry of dh.values()) {
+                const itemPath = currentPath + '/' + entry.name;
+                if (entry.kind === 'file') {
+                    if (entry.name.match(/\.(py|txt|md|json|env|csv)$/) || entry.name === 'requirements.txt') {
+                        const file = await entry.getFile();
+                        files.push({ type: 'file', name: entry.name, path: itemPath, content: await file.text(), handle: entry, isDirty: false, isOpen: false });
+                    }
+                } else if (entry.kind === 'directory') {
+                    files.push({ type: 'folder', name: entry.name, path: itemPath, handle: entry, isExpanded: false });
+                    await scanDirectory(entry, itemPath);
                 }
-            } else {
-                file.isDirty = false;
             }
-            renderTabs();
-            saveVirtualFiles();
         }
 
         async function openDirectory() {
             closeSettings();
-            if (!('showDirectoryPicker' in window)) {
-                showToast("このブラウザはローカルフォルダ機能に未対応です。");
-                return;
-            }
+            if (!('showDirectoryPicker' in window)) return showToast("このブラウザは未対応です");
             try {
                 dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
-                showToast("フォルダを読み込み中...");
+                showToast("読み込み中...");
                 files = [];
-                for await (const entry of dirHandle.values()) {
-                    if (entry.kind === 'file') {
-                        if (entry.name.match(/\.(py|txt|md|json|env|csv)$/) || entry.name === 'requirements.txt') {
-                            const file = await entry.getFile();
-                            const content = await file.text();
-                            files.push({ name: entry.name, content: content, handle: entry, isDirty: false });
-                        }
-                    }
-                }
-                if (files.length === 0) {
-                    await createNewFile("main.py");
-                } else {
-                    activeFileIndex = 0;
-                    switchFile(0);
-                }
-                toggleSidebar();
-                showToast("ワークスペースを開きました");
-            } catch (e) {
-                if (e.name !== 'AbortError') showToast("フォルダの読み込みに失敗しました");
-            }
+                await scanDirectory(dirHandle, '');
+                
+                const firstIdx = files.findIndex(f => f.type === 'file');
+                if (firstIdx >= 0) { files[firstIdx].isOpen = true; activeFileIndex = firstIdx; switchFile(firstIdx); }
+                else { activeFileIndex = -1; switchFile(-1); }
+                toggleSidebar(); showToast("ワークスペースを開きました");
+            } catch (e) { if (e.name !== 'AbortError') showToast("読み込み失敗"); }
+        }
+
+        function getTargetDirectory() {
+            if (activeFileIndex < 0 || !files[activeFileIndex]) return { path: '', handle: dirHandle };
+            const activeItem = files[activeFileIndex];
+            if (activeItem.type === 'folder') return { path: activeItem.path, handle: activeItem.handle || dirHandle };
+            const parentPath = activeItem.path.substring(0, activeItem.path.lastIndexOf('/'));
+            if (parentPath === '') return { path: '', handle: dirHandle };
+            const parentFolder = files.find(f => f.type === 'folder' && f.path === parentPath);
+            return { path: parentPath, handle: parentFolder ? parentFolder.handle : dirHandle };
+        }
+
+        function getParentDirectory(path) {
+            const parentPath = path.substring(0, path.lastIndexOf('/'));
+            if (parentPath === '') return { handle: dirHandle };
+            return files.find(f => f.type === 'folder' && f.path === parentPath) || { handle: null };
         }
 
         async function createNewFile(defaultName = "") {
-            const name = prompt("新規ファイル名を入力してください", defaultName || "utils.py");
+            const name = prompt("新規ファイル名を入力", defaultName || "utils.py");
             if (!name) return;
+            const target = getTargetDirectory();
+            const newPath = target.path + '/' + name;
+            
+            if (files.some(f => f.path === newPath)) return showToast("同名ファイルが存在します");
             
             let newHandle = null;
-            if (dirHandle) {
-                try {
-                    newHandle = await dirHandle.getFileHandle(name, { create: true });
-                } catch (e) {
-                    showToast("ファイル作成エラー: " + e.message);
-                    return;
-                }
+            if (target.handle && typeof target.handle.getFileHandle === 'function') {
+                try { newHandle = await target.handle.getFileHandle(name, { create: true }); } 
+                catch (e) { return showToast("作成エラー: " + e.message); }
             }
-            files.push({ name: name, content: '', handle: newHandle, isDirty: false });
+            
+            files.push({ type: 'file', name: name, path: newPath, content: '', handle: newHandle, isDirty: false, isOpen: true });
+            if (target.path) { const p = files.find(f => f.type === 'folder' && f.path === target.path); if (p) p.isExpanded = true; }
+            
             activeFileIndex = files.length - 1;
-            switchFile(activeFileIndex);
-            saveVirtualFiles();
-            showToast(`${name} を作成しました`);
+            switchFile(activeFileIndex); saveVirtualFiles(); showToast(`${name} を作成しました`);
+        }
+
+        async function createNewFolder() {
+            const name = prompt("新規フォルダ名を入力", "new_folder");
+            if (!name) return;
+            const target = getTargetDirectory();
+            const newPath = target.path + '/' + name;
+
+            if (files.some(f => f.path === newPath)) return showToast("同名フォルダが存在します");
+
+            let newHandle = null;
+            if (target.handle && typeof target.handle.getDirectoryHandle === 'function') {
+                try { newHandle = await target.handle.getDirectoryHandle(name, { create: true }); } 
+                catch (e) { return showToast("作成エラー: " + e.message); }
+            }
+
+            files.push({ type: 'folder', name: name, path: newPath, handle: newHandle, isExpanded: true });
+            if (target.path) { const p = files.find(f => f.type === 'folder' && f.path === target.path); if (p) p.isExpanded = true; }
+            
+            renderSidebar(); saveVirtualFiles(); showToast(`${name} を作成しました`);
         }
 
         async function renameFile(index, event) {
             event.stopPropagation();
-            const file = files[index];
-            const newName = prompt("新しいファイル名を入力してください", file.name);
-            if (!newName || newName === file.name) return;
+            const item = files[index];
+            if (item.type === 'folder') return showToast("フォルダのリネームは未対応です");
             
-            if (file.handle && dirHandle) {
+            const newName = prompt("新しいファイル名を入力", item.name);
+            if (!newName || newName === item.name) return;
+            const newPath = item.path.substring(0, item.path.lastIndexOf('/')) + '/' + newName;
+            
+            if (item.handle) {
                 try {
-                    const newHandle = await dirHandle.getFileHandle(newName, { create: true });
-                    const writable = await newHandle.createWritable();
-                    await writable.write(file.content);
-                    await writable.close();
-                    await dirHandle.removeEntry(file.name);
-                    file.handle = newHandle;
-                } catch (e) {
-                    showToast("リネーム失敗: " + e.message);
-                    return;
-                }
+                    const parentHandle = getParentDirectory(item.path).handle || dirHandle;
+                    if (parentHandle) {
+                        const newHandle = await parentHandle.getFileHandle(newName, { create: true });
+                        const writable = await newHandle.createWritable();
+                        await writable.write(item.content); await writable.close();
+                        await parentHandle.removeEntry(item.name);
+                        item.handle = newHandle;
+                    }
+                } catch (e) { return showToast("リネーム失敗: " + e.message); }
             }
             
-            file.name = newName;
-            renderSidebar();
-            renderTabs();
-            saveVirtualFiles();
-            showToast("ファイル名を変更しました");
+            item.name = newName; item.path = newPath;
+            renderSidebar(); renderTabs(); saveVirtualFiles(); showToast("変更しました");
         }
 
         async function deleteFile(index, event) {
             event.stopPropagation();
-            const file = files[index];
-            if (!confirm(`${file.name} を削除しますか？`)) return;
+            const item = files[index];
+            if (!confirm(`${item.name} を削除しますか？`)) return;
             
-            if (file.handle && dirHandle) {
-                try { await dirHandle.removeEntry(file.name); } 
-                catch (e) { console.error(e); showToast("ローカルファイルの削除失敗"); }
+            if (item.handle) {
+                try {
+                    const parentHandle = getParentDirectory(item.path).handle || dirHandle;
+                    if (parentHandle) await parentHandle.removeEntry(item.name, { recursive: item.type === 'folder' });
+                } catch (e) { showToast("ローカルファイルの削除失敗"); }
             }
             
-            files.splice(index, 1);
+            const prefix = item.path + '/';
+            const toDelete = [index];
+            if (item.type === 'folder') files.forEach((f, i) => { if (f.path.startsWith(prefix)) toDelete.push(i); });
+            toDelete.sort((a,b)=>b-a).forEach(i => files.splice(i, 1));
+            
             if (files.length === 0) {
-                files.push({ name: 'main.py', content: '', handle: null, isDirty: false });
+                files.push({ type: 'file', name: 'main.py', path: '/main.py', content: '', handle: null, isDirty: false, isOpen: true });
                 activeFileIndex = 0;
-            } else if (activeFileIndex >= files.length) {
-                activeFileIndex = files.length - 1;
+            } else if (!files[activeFileIndex] || files[activeFileIndex].type !== 'file' || !files[activeFileIndex].isOpen) {
+                activeFileIndex = files.findIndex(f => f.type === 'file' && f.isOpen);
             }
-            switchFile(activeFileIndex);
-            saveVirtualFiles();
+            switchFile(activeFileIndex); saveVirtualFiles();
+        }
+
+        function toggleFolder(index) {
+            if (files[index] && files[index].type === 'folder') { files[index].isExpanded = !files[index].isExpanded; renderSidebar(); saveVirtualFiles(); }
+        }
+        function openFile(index) {
+            if (files[index] && files[index].type === 'file') { files[index].isOpen = true; switchFile(index); }
         }
 
         function renderSidebar() {
             const tree = document.getElementById('file-tree');
-            tree.innerHTML = files.map((f, i) => `
-                <div class="file-item ${i === activeFileIndex ? 'active' : ''}" onclick="switchFile(${i})">
-                    <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">📄 ${f.name}</span>
-                    <div class="file-item-actions">
-                        <button class="btn-icon" style="font-size:14px; color:#ccc; margin-left:5px;" onclick="renameFile(${i}, event)" title="リネーム">✏️</button>
-                        <button class="btn-icon" style="font-size:14px; color:#ff6b6b; margin-left:5px;" onclick="deleteFile(${i}, event)" title="削除">✕</button>
-                    </div>
-                </div>
-            `).join('');
-            renderTabs();
+            let html = '';
+            const sortedFiles = [...files].sort((a, b) => a.path.localeCompare(b.path));
+            
+            for (const f of sortedFiles) {
+                const parts = f.path.split('/').filter(p => p); parts.pop();
+                let isVisible = true, currentCheck = '';
+                for (const part of parts) {
+                    currentCheck += '/' + part;
+                    const p = files.find(pf => pf.type === 'folder' && pf.path === currentCheck);
+                    if (p && !p.isExpanded) { isVisible = false; break; }
+                }
+                if (!isVisible) continue;
+
+                const indent = Math.max(0, (f.path.match(/\//g) || []).length - 1) * 15;
+                const origIdx = files.findIndex(orig => orig.path === f.path);
+                
+                if (f.type === 'folder') {
+                    html += `<div class="file-item" style="padding-left: ${indent + 6}px;" onclick="toggleFolder(${origIdx})">
+                        <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${f.isExpanded ? '📂' : '📁'} ${f.name}</span>
+                        <div class="file-item-actions"><button class="btn-icon" style="font-size:14px; color:#ff6b6b; margin-left:5px;" onclick="deleteFile(${origIdx}, event)">✕</button></div>
+                    </div>`;
+                } else {
+                    html += `<div class="file-item ${origIdx === activeFileIndex ? 'active' : ''}" style="padding-left: ${indent + 6}px;" onclick="openFile(${origIdx})">
+                        <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">📄 ${f.name}</span>
+                        <div class="file-item-actions">
+                            <button class="btn-icon" style="font-size:14px; color:#ccc; margin-left:5px;" onclick="renameFile(${origIdx}, event)">✏️</button>
+                            <button class="btn-icon" style="font-size:14px; color:#ff6b6b; margin-left:5px;" onclick="deleteFile(${origIdx}, event)">✕</button>
+                        </div>
+                    </div>`;
+                }
+            }
+            tree.innerHTML = html; renderTabs();
         }
 
         function renderTabs() {
             const tabs = document.getElementById('editor-tabs');
-            tabs.innerHTML = files.map((f, i) => `
-                <div class="tab ${i === activeFileIndex ? 'active' : ''}" onclick="switchFile(${i})">
+            tabs.innerHTML = files.map((f, i) => {
+                if (f.type !== 'file' || !f.isOpen) return '';
+                return `<div class="tab ${i === activeFileIndex ? 'active' : ''}" onclick="switchFile(${i})">
                     ${f.name} ${f.isDirty ? '<span style="color:var(--accent-blue)">*</span>' : ''}
-                </div>
-            `).join('');
+                    <span class="close-btn" onclick="closeTab(${i}, event)">×</span>
+                </div>`;
+            }).join('');
+            
+            const cmWrapper = document.querySelector('.CodeMirror');
+            if (cmWrapper) cmWrapper.style.display = activeFileIndex < 0 ? 'none' : 'block';
+        }
+
+        function closeTab(index, event) {
+            event.stopPropagation();
+            const file = files[index];
+            if (file.isDirty && !confirm(`「${file.name}」には未保存の変更があります。破棄して閉じますか？`)) return;
+            
+            file.isOpen = false;
+            if (activeFileIndex === index) {
+                const nextIdx = files.findIndex(f => f.type === 'file' && f.isOpen);
+                switchFile(nextIdx);
+            } else renderTabs();
+            saveVirtualFiles();
         }
 
         function switchFile(index) {
-            if (index < 0 || index >= files.length) return;
-            
-            if (activeFileIndex >= 0 && files[activeFileIndex] && codeEditorInstance) {
+            if (activeFileIndex >= 0 && files[activeFileIndex] && files[activeFileIndex].type === 'file' && codeEditorInstance) {
                 files[activeFileIndex].content = codeEditorInstance.getValue();
             }
-            
             activeFileIndex = index;
-            if(codeEditorInstance) {
-                codeEditorInstance.setValue(files[activeFileIndex].content);
-                codeEditorInstance.clearHistory(); 
+            if (index >= 0 && files[index] && files[index].type === 'file' && codeEditorInstance) {
+                codeEditorInstance.setValue(files[index].content); codeEditorInstance.clearHistory();
+            } else if (codeEditorInstance) {
+                codeEditorInstance.setValue(""); codeEditorInstance.clearHistory();
             }
-            renderSidebar();
-            closeSidebar();
+            renderSidebar(); closeSidebar();
         }
 
-        // --- 履歴管理 ---
         function saveToHistory(prompt, codeResult) {
-            if (!db) return;
-            try {
-                const tx = db.transaction('history', 'readwrite');
-                tx.objectStore('history').add({ date: new Date().toISOString(), prompt, code: codeResult });
-            } catch (err) { console.error("履歴保存エラー:", err); }
+            if (db) db.transaction('history', 'readwrite').objectStore('history').add({ date: new Date().toISOString(), prompt, code: codeResult });
         }
-
         function clearHistory() {
-            if(!confirm("保存されているAIの生成履歴をすべて削除しますか？")) return;
-            if(db) {
-                const tx = db.transaction('history', 'readwrite');
-                tx.objectStore('history').clear();
-                showToast("履歴を削除しました");
-                closeSettings();
-            }
+            if(confirm("履歴をすべて削除しますか？") && db) { db.transaction('history', 'readwrite').objectStore('history').clear(); showToast("削除しました"); closeSettings(); }
         }
 
-        // --- ZIPエクスポート・インポート機能 ---
         async function exportData() {
             try {
                 closeSettings();
                 const zip = new JSZip();
-                
-                if (activeFileIndex >= 0 && files[activeFileIndex] && codeEditorInstance) {
+                if (activeFileIndex >= 0 && files[activeFileIndex] && files[activeFileIndex].type === 'file' && codeEditorInstance) {
                     files[activeFileIndex].content = codeEditorInstance.getValue();
                 }
-
-                files.forEach(f => {
-                    if (f.name) zip.file(f.name, f.content);
-                });
-                
+                files.forEach(f => { if (f.type === 'file' && f.name) zip.file(f.path.startsWith('/') ? f.path.substring(1) : f.path, f.content); });
                 if (appSettings.pipPackages) zip.file("requirements.txt", appSettings.pipPackages);
                 if (appSettings.envVars) zip.file(".env", appSettings.envVars);
-                
-                const data = { settings: appSettings, timestamp: new Date().toISOString() };
-                zip.file("ai_settings.json", JSON.stringify(data, null, 2));
+                zip.file("ai_settings.json", JSON.stringify({ settings: appSettings, timestamp: new Date().toISOString() }, null, 2));
 
                 const blob = await zip.generateAsync({type: "blob"});
-                
                 if ('showSaveFilePicker' in window) {
-                    const handle = await window.showSaveFilePicker({
-                        suggestedName: 'workspace_backup.zip',
-                        types: [{ description: 'ZIP Archive', accept: { 'application/zip': ['.zip'] } }],
-                    });
-                    const writable = await handle.createWritable();
-                    await writable.write(blob);
-                    await writable.close();
+                    const handle = await window.showSaveFilePicker({ suggestedName: 'workspace_backup.zip', types: [{ description: 'ZIP Archive', accept: { 'application/zip': ['.zip'] } }] });
+                    const writable = await handle.createWritable(); await writable.write(blob); await writable.close();
                     showToast("ローカルにZIP保存しました");
                 } else {
-                    const a = document.createElement('a');
-                    a.href = URL.createObjectURL(blob);
-                    a.download = 'workspace_backup.zip';
-                    a.click();
-                    showToast("ZIPダウンロードを開始しました");
+                    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'workspace_backup.zip'; a.click(); showToast("ダウンロード開始");
                 }
-            } catch (err) {
-                if (err.name !== 'AbortError') { showToast("保存に失敗しました"); console.error(err); }
-            }
+            } catch (err) { if (err.name !== 'AbortError') showToast("保存失敗"); }
         }
 
         async function importData() {
             closeSettings();
             if ('showOpenFilePicker' in window) {
                 try {
-                    const [fileHandle] = await window.showOpenFilePicker({
-                        types: [{ description: 'テキスト/JSON/Python', accept: { 'text/*': ['.txt', '.md', '.py', '.env'], 'application/json': ['.json'] } }]
-                    });
-                    const file = await fileHandle.getFile();
-                    const text = await file.text();
-                    processImportedText(file.name, text);
+                    const [handle] = await window.showOpenFilePicker({ types: [{ description: 'テキスト/JSON/Python', accept: { 'text/*': ['.txt', '.md', '.py', '.env'], 'application/json': ['.json'] } }] });
+                    const file = await handle.getFile(); processImportedText(file.name, await file.text());
                 } catch (err) { if(err.name !== 'AbortError') showToast("読み込み失敗"); }
             } else {
-                const input = document.createElement('input');
-                input.type = 'file'; input.accept = '.json,.txt,.md,.py,.env';
+                const input = document.createElement('input'); input.type = 'file'; input.accept = '.json,.txt,.md,.py,.env';
                 input.onchange = e => {
-                    const file = e.target.files[0];
-                    if(!file) return;
-                    const reader = new FileReader();
-                    reader.onload = re => processImportedText(file.name, re.target.result);
-                    reader.readAsText(file);
+                    const file = e.target.files[0]; if(!file) return;
+                    const reader = new FileReader(); reader.onload = re => processImportedText(file.name, re.target.result); reader.readAsText(file);
                 };
                 input.click();
             }
         }
 
         function processImportedText(filename, text) {
-            if (filename.endsWith('.json') && !filename.includes('settings')) {
-                try {
-                    const data = JSON.parse(text);
-                    if(data.code) text = data.code;
-                } catch(err) { }
+            if (filename.endsWith('.json') && !filename.includes('settings')) { try { const data = JSON.parse(text); if(data.code) text = data.code; } catch(err) { } }
+            if (activeFileIndex >= 0 && files[activeFileIndex].type === 'file') {
+                codeEditorInstance.setValue(text); files[activeFileIndex].content = text; saveCurrentFile(); showToast("現在のタブに読み込みました");
+            } else {
+                files.push({ type: 'file', name: filename, path: '/' + filename, content: text, handle: null, isDirty: false, isOpen: true });
+                activeFileIndex = files.length - 1; switchFile(activeFileIndex); saveVirtualFiles(); showToast(`${filename} を読み込みました`);
             }
-            codeEditorInstance.setValue(text);
-            if (activeFileIndex >= 0) files[activeFileIndex].content = text;
-            saveCurrentFile();
-            showToast("現在のタブに読み込みました");
         }
 
-        // --- Python補完機能拡張 ---
         CodeMirror.commands.autocomplete = function(cm) {
             CodeMirror.showHint(cm, function(cm, options) {
-                const word = /[\w$]+/;
                 const cur = cm.getCursor(), curLine = cm.getLine(cur.line);
-                const end = cur.ch, start = end;
-                let matchStart = start;
-                while (matchStart && word.test(curLine.charAt(matchStart - 1))) --matchStart;
-                const curWord = matchStart != end && curLine.slice(matchStart, end);
-                
-                let list = [];
-                const pythonKeywords = ["def", "class", "import", "from", "for", "while", "if", "elif", "else", "return", "True", "False", "None", "and", "or", "not", "in", "is", "try", "except", "finally", "with", "as", "lambda", "pass", "break", "continue", "yield", "global", "nonlocal", "del", "assert", "async", "await", "print", "self"];
-                
-                if (curWord) {
-                    list = pythonKeywords.filter(k => k.startsWith(curWord));
-                }
-                
-                const anywordResult = CodeMirror.hint.anyword(cm, options);
-                if (anywordResult && anywordResult.list) {
-                    list = [...new Set([...list, ...anywordResult.list])];
-                }
-                
-                return {list: list, from: CodeMirror.Pos(cur.line, matchStart), to: CodeMirror.Pos(cur.line, end)};
+                let matchStart = cur.ch; while (matchStart && /[\w$]+/.test(curLine.charAt(matchStart - 1))) --matchStart;
+                const curWord = matchStart != cur.ch && curLine.slice(matchStart, cur.ch);
+                const pyKw = ["def", "class", "import", "from", "for", "while", "if", "elif", "else", "return", "True", "False", "None", "print", "self"];
+                let list = curWord ? pyKw.filter(k => k.startsWith(curWord)) : [];
+                const anyRes = CodeMirror.hint.anyword(cm, options);
+                if (anyRes && anyRes.list) list = [...new Set([...list, ...anyRes.list])];
+                return {list: list, from: CodeMirror.Pos(cur.line, matchStart), to: CodeMirror.Pos(cur.line, cur.ch)};
             }, {completeSingle: false});
         };
 
-        // --- Python環境 ---
         let pyodide;
         let installedPackages = new Set(['micropip', 'pyodide', 'js', 'pyodide_js', 'sys', 'os', 'io', 'math', 'json', 're', 'time', 'datetime', 'random', 'collections']);
         const IMPORT_TO_PACKAGE = { 'sklearn': 'scikit-learn', 'cv2': 'opencv-python', 'PIL': 'Pillow', 'bs4': 'beautifulsoup4', 'yaml': 'pyyaml' };
 
         window.onload = async () => {
             codeEditorInstance = CodeMirror.fromTextArea(document.getElementById('code'), {
-                mode: "python",
-                theme: "darcula",
-                lineNumbers: true,
-                indentUnit: 4,
-                matchBrackets: true,
-                autoCloseBrackets: true,
-                lineWrapping: true,
-                extraKeys: {
-                    "Ctrl-Space": "autocomplete",
-                    "Cmd-/": "toggleComment",
-                    "Ctrl-/": "toggleComment"
-                }
+                mode: "python", theme: "darcula", lineNumbers: true, indentUnit: 4, matchBrackets: true, autoCloseBrackets: true, lineWrapping: true,
+                extraKeys: { "Ctrl-Space": "autocomplete", "Cmd-/": "toggleComment", "Ctrl-/": "toggleComment" }
             });
-
-            codeEditorInstance.on("inputRead", function(cm, change) {
-                if (change.text[0].match(/[a-zA-Z_]/)) {
-                    CodeMirror.commands.autocomplete(cm);
-                }
-            });
-
+            codeEditorInstance.on("inputRead", (cm, change) => { if (change.text[0].match(/[a-zA-Z_]/)) CodeMirror.commands.autocomplete(cm); });
             codeEditorInstance.on('change', () => {
-                if (activeFileIndex >= 0 && files[activeFileIndex]) {
+                if (activeFileIndex >= 0 && files[activeFileIndex] && files[activeFileIndex].type === 'file') {
                     files[activeFileIndex].content = codeEditorInstance.getValue();
-                    if (!files[activeFileIndex].isDirty) {
-                        files[activeFileIndex].isDirty = true;
-                        renderTabs();
-                    }
-                    clearTimeout(autoSaveTimer);
-                    autoSaveTimer = setTimeout(saveCurrentFile, 2000);
+                    if (!files[activeFileIndex].isDirty) { files[activeFileIndex].isDirty = true; renderTabs(); }
+                    clearTimeout(autoSaveTimer); autoSaveTimer = setTimeout(saveCurrentFile, 2000);
                 }
             });
 
-            // 長押しイベントの登録 (エディタ領域)
             const cmWrapper = codeEditorInstance.getWrapperElement();
             cmWrapper.addEventListener('touchstart', onTouchStart, {passive: true});
             cmWrapper.addEventListener('touchmove', onTouchMove, {passive: true});
@@ -995,75 +863,39 @@
 
         async function init() {
             await initDB();
-            
             const statusText = document.getElementById('status-text');
-            const outputDiv = document.getElementById('output');
-
             try {
-                statusText.innerHTML = "<span class='loader'></span> システム: Pyodideコアをダウンロード中...";
+                statusText.innerHTML = "<span class='loader'></span> PyodideコアDL中...";
                 pyodide = await loadPyodide();
-                statusText.innerHTML = "<span class='loader'></span> システム: micropipを準備中...";
+                statusText.innerHTML = "<span class='loader'></span> micropip準備中...";
                 await pyodide.loadPackage("micropip");
-                statusText.innerHTML = "システム: 準備完了 ✅";
-                statusText.style.color = "#4CAF50";
-                showToast("Python環境の準備が完了しました！");
+                statusText.innerHTML = "システム: 準備完了 ✅"; statusText.style.color = "#4CAF50"; showToast("Python準備完了！");
             } catch (err) {
-                console.error("Pyodideロードエラー:", err);
-                statusText.innerText = "システム: エラー発生 - ロード失敗";
-                outputDiv.innerText = "Pyodideの読み込みに失敗しました。\n" + err.message;
-                outputDiv.style.color = "#ff6b6b";
-                pyodide = null;
+                statusText.innerText = "システム: エラー発生"; document.getElementById('output').innerText = err.message; document.getElementById('output').style.color = "#ff6b6b"; pyodide = null;
             }
         }
 
         async function formatCode() {
-            if (!pyodide) { showToast("Python環境が準備中かエラーです"); return; }
-            const code = codeEditorInstance.getValue();
-            if (!code.trim()) return;
-            
+            if (activeFileIndex < 0) return showToast("ファイルが開かれていません");
+            if (!pyodide) return showToast("Python環境が準備中かエラーです");
+            const code = codeEditorInstance.getValue(); if (!code.trim()) return;
             const statusText = document.getElementById('status-text');
-            statusText.innerHTML = "<span class='loader'></span> コード整形中(Black)...";
-            
+            statusText.innerHTML = "<span class='loader'></span> コード整形中...";
             try {
-                if (!installedPackages.has('black')) {
-                    const micropip = pyodide.pyimport("micropip");
-                    await micropip.install('black');
-                    installedPackages.add('black');
-                }
-                
+                if (!installedPackages.has('black')) { await pyodide.pyimport("micropip").install('black'); installedPackages.add('black'); }
                 pyodide.globals.set("code_to_format", code);
-                await pyodide.runPythonAsync(`
-import black
-try:
-    formatted_code = black.format_str(code_to_format, mode=black.FileMode())
-except Exception as e:
-    formatted_code = code_to_format
-                `);
-                const formattedCode = pyodide.globals.get("formatted_code");
-                if (formattedCode !== code && formattedCode !== pyodide.globals.get("code_to_format")) {
-                    codeEditorInstance.setValue(formattedCode);
-                    saveCurrentFile();
-                    showToast("PEP8で整形しました");
-                } else {
-                    showToast("整形済み、または構文エラーがあります");
-                }
+                await pyodide.runPythonAsync(`import black\ntry:\n  formatted_code = black.format_str(code_to_format, mode=black.FileMode())\nexcept:\n  formatted_code = code_to_format`);
+                const fCode = pyodide.globals.get("formatted_code");
+                if (fCode !== code) { codeEditorInstance.setValue(fCode); saveCurrentFile(); showToast("整形しました"); } else showToast("整形済みかエラーです");
                 statusText.innerText = "システム: 準備完了 ✅";
-            } catch (e) {
-                console.error("Format Error:", e);
-                showToast("整形エラー: パッケージのロードに失敗しました");
-                statusText.innerText = "システム: エラー";
-            }
+            } catch (e) { showToast("整形エラー"); statusText.innerText = "システム: エラー"; }
         }
 
         function detectImports(code) {
             const imports = new Set();
-            const lines = code.split('\n');
-            for (const line of lines) {
-                const trimmed = line.trim();
-                let m = trimmed.match(/^import\s+([a-zA-Z0-9_]+)/);
-                if (m) imports.add(m[1].split('.')[0]); 
-                m = trimmed.match(/^from\s+([a-zA-Z0-9_]+)/);
-                if (m) imports.add(m[1].split('.')[0]);
+            for (const line of code.split('\n')) {
+                let m = line.trim().match(/^(import|from)\s+([a-zA-Z0-9_]+)/);
+                if (m) imports.add(m[2]);
             }
             return Array.from(imports).filter(mod => !installedPackages.has(mod));
         }
@@ -1075,165 +907,79 @@ except Exception as e:
                 if (installedPackages.has(mod)) continue;
                 const pipName = IMPORT_TO_PACKAGE[mod] || mod;
                 statusText.innerHTML = "<span class='loader'></span> " + pipName + " をインストール中...";
-                try {
-                    await pyodide.loadPackage(mod);
-                    installedPackages.add(mod);
-                } catch (e1) {
-                    try {
-                        await micropip.install(pipName);
-                        installedPackages.add(mod);
-                        installedPackages.add(pipName);
-                    } catch (e2) {
-                        console.warn("インストール失敗:", pipName);
-                    }
-                }
+                try { await pyodide.loadPackage(mod); installedPackages.add(mod); }
+                catch (e) { try { await micropip.install(pipName); installedPackages.add(mod); installedPackages.add(pipName); } catch (e2) {} }
             }
         }
 
         async function runPython() {
-            if (activeFileIndex >= 0 && files[activeFileIndex]) {
-                files[activeFileIndex].content = codeEditorInstance.getValue();
-                saveVirtualFiles();
-            }
+            if (activeFileIndex < 0) return showToast("実行するファイルがありません");
+            if (files[activeFileIndex].type === 'file') { files[activeFileIndex].content = codeEditorInstance.getValue(); saveVirtualFiles(); }
+            if (!pyodide) return showToast("Python環境が準備できていません。");
 
-            const code = codeEditorInstance.getValue();
-            const outputDiv = document.getElementById('output');
-            const statusText = document.getElementById('status-text');
-
-            if (!pyodide) { showToast("Python環境が準備できていません。"); return; }
-
-            statusText.innerHTML = "<span class='loader'></span> 環境構築中...";
-            outputDiv.innerText = "";
-            outputDiv.style.color = "var(--text-color)";
-
+            const code = codeEditorInstance.getValue(), outDiv = document.getElementById('output'), stText = document.getElementById('status-text');
+            stText.innerHTML = "<span class='loader'></span> 環境構築中..."; outDiv.innerText = ""; outDiv.style.color = "var(--text-color)";
             try {
-                const neededPkgs = detectImports(code);
-                const pipLines = appSettings.pipPackages.split('\n').map(l => l.trim()).filter(l => l);
-                const allPkgs = Array.from(new Set([...neededPkgs, ...pipLines]));
-                
-                if (allPkgs.length > 0) {
-                    await autoInstallPackages(allPkgs, statusText);
-                }
+                const allPkgs = Array.from(new Set([...detectImports(code), ...appSettings.pipPackages.split('\n').map(l => l.trim()).filter(l => l)]));
+                if (allPkgs.length > 0) await autoInstallPackages(allPkgs, stText);
+                if (appSettings.envVars) await pyodide.runPythonAsync('import os\n' + appSettings.envVars.split('\n').filter(l=>l.includes('=')).map(l=>`os.environ["${l.split('=')[0].trim()}"] = """${l.split('=').slice(1).join('=').trim()}"""`).join('\n'));
 
-                if (appSettings.envVars) {
-                    const envLines = appSettings.envVars.split('\n');
-                    let envCode = 'import os\n';
-                    envLines.forEach(line => {
-                        const parts = line.split('=');
-                        if (parts.length >= 2) {
-                            const key = parts[0].trim();
-                            const val = parts.slice(1).join('=').trim();
-                            envCode += `os.environ["${key}"] = """${val}"""\n`;
-                        }
-                    });
-                    await pyodide.runPythonAsync(envCode);
-                }
-
-                statusText.innerHTML = "<span class='loader'></span> コード実行中...";
-
+                stText.innerHTML = "<span class='loader'></span> コード実行中...";
                 await pyodide.runPythonAsync("import sys, io\nsys.stdout = io.StringIO()\nsys.stderr = io.StringIO()");
                 await pyodide.runPythonAsync(code);
-                const stdout = await pyodide.runPythonAsync("sys.stdout.getvalue()");
-                const stderr = await pyodide.runPythonAsync("sys.stderr.getvalue()");
-
-                if (stdout) outputDiv.innerText += stdout;
-                if (stderr) {
-                    outputDiv.innerText += "\n[Error]\n" + stderr;
-                    outputDiv.style.color = "#ff6b6b";
-                    statusText.innerText = "システム: エラー終了";
-                } else {
-                    statusText.innerText = "システム: 実行完了 ✅";
-                    showToast("実行完了");
-                }
-            } catch (err) {
-                outputDiv.innerText = "実行エラー:\n" + err.message;
-                outputDiv.style.color = "#ff6b6b";
-                statusText.innerText = "システム: エラー";
-            }
+                const stdout = await pyodide.runPythonAsync("sys.stdout.getvalue()"), stderr = await pyodide.runPythonAsync("sys.stderr.getvalue()");
+                if (stdout) outDiv.innerText += stdout;
+                if (stderr) { outDiv.innerText += "\n[Error]\n" + stderr; outDiv.style.color = "#ff6b6b"; stText.innerText = "システム: エラー終了"; }
+                else { stText.innerText = "システム: 実行完了 ✅"; showToast("実行完了"); }
+            } catch (err) { outDiv.innerText = "実行エラー:\n" + err.message; outDiv.style.color = "#ff6b6b"; stText.innerText = "システム: エラー"; }
         }
 
         function stripCodeFences(text) { return text.replace(/```python\s*/gi, '').replace(/```\s*/g, '').trim(); }
 
-        // API コール (Gemini / OpenAI系互換)
-        async function callGeminiAPI(apiKey, model, prompt, systemPrompt, codeContext) {
-            const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + apiKey;
-            const body = {
-                system_instruction: { parts: [{text: systemPrompt}] },
-                contents: [{ parts: [{ text: "現在のファイル内容:\n\n" + codeContext + "\n\n指示:\n" + prompt }] }]
-            };
-            const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-            const data = await res.json();
-            if (data.error) throw new Error(data.error.message);
+        async function callGeminiAPI(apiKey, model, prompt, sys, code) {
+            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ system_instruction: { parts: [{text: sys}] }, contents: [{ parts: [{ text: "現在のファイル内容:\n\n" + code + "\n\n指示:\n" + prompt }] }] })
+            });
+            const data = await res.json(); if (data.error) throw new Error(data.error.message);
             return stripCodeFences(data.candidates[0].content.parts[0].text);
         }
 
-        async function callOpenAIAPI(apiKey, model, prompt, systemPrompt, codeContext) {
-            const url = 'https://api.openai.com/v1/chat/completions';
-            const body = {
-                model: model,
-                messages: [
-                    {role: "system", content: systemPrompt},
-                    {role: "user", content: "現在のファイル内容:\n\n" + codeContext + "\n\n指示:\n" + prompt}
-                ]
-            };
-            const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` }, body: JSON.stringify(body) });
-            const data = await res.json();
-            if (data.error) throw new Error(data.error.message);
+        async function callOpenAIAPI(apiKey, model, prompt, sys, code) {
+            const res = await fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+                body: JSON.stringify({ model: model, messages: [{role: "system", content: sys}, {role: "user", content: "現在のファイル内容:\n\n" + code + "\n\n指示:\n" + prompt}] })
+            });
+            const data = await res.json(); if (data.error) throw new Error(data.error.message);
             return stripCodeFences(data.choices[0].message.content);
         }
 
         async function askAI() {
-            const fullCode = codeEditorInstance.getValue();
-            const lines = fullCode.split('\n');
-            let targetLineIndex = -1;
-            let aiPromptText = "";
+            if (activeFileIndex < 0) return showToast("AIを適用するファイルがありません");
+            const fullCode = codeEditorInstance.getValue(), lines = fullCode.split('\n');
+            let targetIdx = -1, aiPromptText = "";
+            for (let i = 0; i < lines.length; i++) { if (lines[i].trim().startsWith('# AI:')) { targetIdx = i; aiPromptText = lines[i].replace('# AI:', '').trim(); break; } }
             
-            for (let i = 0; i < lines.length; i++) {
-                if (lines[i].trim().startsWith('# AI:')) {
-                    targetLineIndex = i; aiPromptText = lines[i].replace('# AI:', '').trim(); break;
-                }
-            }
-            
-            const generalPrompt = document.getElementById('ai-prompt').value;
-            const finalPrompt = aiPromptText ? aiPromptText : generalPrompt;
-            
-            if (!finalPrompt) { showToast("指示を入力するか '# AI: 指示' を記述してください"); return; }
+            const finalPrompt = aiPromptText || document.getElementById('ai-prompt').value;
+            if (!finalPrompt) return showToast("指示を入力するか '# AI: 指示' を記述してください");
             
             document.getElementById('status-text').innerHTML = "<span class='loader'></span> AI生成中...";
-            document.getElementById('btn-ai').disabled = true;
-            requestWakeLock();
+            document.getElementById('btn-ai').disabled = true; requestWakeLock();
             
             try {
-                let aiResponse;
-                const activeModel = appSettings.customModel || appSettings.model;
-                
-                if (appSettings.apiKey && activeModel.includes('gemini')) {
-                    aiResponse = await callGeminiAPI(appSettings.apiKey, activeModel, finalPrompt, appSettings.systemPrompt, fullCode);
-                } else if (appSettings.apiKey && (activeModel.includes('gpt') || activeModel.includes('grok'))) {
-                    aiResponse = await callOpenAIAPI(appSettings.apiKey, activeModel, finalPrompt, appSettings.systemPrompt, fullCode);
-                } else {
-                    await new Promise(r => setTimeout(r, 1500));
-                    aiResponse = '# [AI Mock]\n# APIキー未設定かサポート外モデルです\nfor i in range(3):\n    print("Success")';
-                }
+                let res; const activeModel = appSettings.customModel || appSettings.model;
+                if (appSettings.apiKey && activeModel.includes('gemini')) res = await callGeminiAPI(appSettings.apiKey, activeModel, finalPrompt, appSettings.systemPrompt, fullCode);
+                else if (appSettings.apiKey && (activeModel.includes('gpt') || activeModel.includes('grok'))) res = await callOpenAIAPI(appSettings.apiKey, activeModel, finalPrompt, appSettings.systemPrompt, fullCode);
+                else { await new Promise(r => setTimeout(r, 1500)); res = '# APIキー未設定です\nprint("Success")'; }
 
-                if (targetLineIndex !== -1) {
-                    lines.splice(targetLineIndex + 1, 0, aiResponse);
-                    codeEditorInstance.setValue(lines.join('\n'));
-                } else {
-                    codeEditorInstance.setValue(fullCode + '\n\n' + aiResponse);
-                }
+                if (targetIdx !== -1) { lines.splice(targetIdx + 1, 0, res); codeEditorInstance.setValue(lines.join('\n')); }
+                else codeEditorInstance.setValue(fullCode + '\n\n' + res);
                 
-                saveCurrentFile();
-                saveToHistory(finalPrompt, aiResponse);
-                document.getElementById('status-text').innerText = "システム: 生成完了 ✅";
-                showToast("AIコード生成完了");
+                saveCurrentFile(); saveToHistory(finalPrompt, res);
+                document.getElementById('status-text').innerText = "システム: 生成完了 ✅"; showToast("AIコード生成完了");
             } catch (err) {
-                document.getElementById('status-text').innerText = "システム: AIエラー";
-                showToast("APIエラー: " + err.message);
-            } finally {
-                releaseWakeLock();
-                document.getElementById('btn-ai').disabled = false;
-            }
+                document.getElementById('status-text').innerText = "システム: AIエラー"; showToast("APIエラー: " + err.message);
+            } finally { releaseWakeLock(); document.getElementById('btn-ai').disabled = false; }
         }
     </script>
 </body>
