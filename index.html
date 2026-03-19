@@ -331,6 +331,19 @@
         </div>
     </div>
 
+    <!-- AIエラー分析用モーダル -->
+    <div id="ai-fix-modal" class="modal">
+        <div class="modal-content">
+            <h2>🤖 AI エラー分析</h2>
+            <div id="ai-fix-content" style="margin-top: 10px; font-size: 13px; color: #ccc; max-height: 50vh; overflow-y: auto;">
+                分析中...
+            </div>
+            <div class="modal-btn-group">
+                <button onclick="closeAiFixModal()" style="background: #555;">閉じる</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         let codeEditorInstance;
 
@@ -929,29 +942,41 @@
                 await pyodide.runPythonAsync(code);
                 const stdout = await pyodide.runPythonAsync("sys.stdout.getvalue()"), stderr = await pyodide.runPythonAsync("sys.stderr.getvalue()");
                 if (stdout) outDiv.innerText += stdout;
-                if (stderr) { outDiv.innerText += "\n[Error]\n" + stderr; outDiv.style.color = "#ff6b6b"; stText.innerText = "システム: エラー終了"; }
+                if (stderr) { 
+                    outDiv.innerText += "\n[Error]\n" + stderr; 
+                    outDiv.style.color = "#ff6b6b"; 
+                    stText.innerText = "システム: エラー終了"; 
+                    triggerAiErrorAnalysis(stderr, code);
+                }
                 else { stText.innerText = "システム: 実行完了 ✅"; showToast("実行完了"); }
-            } catch (err) { outDiv.innerText = "実行エラー:\n" + err.message; outDiv.style.color = "#ff6b6b"; stText.innerText = "システム: エラー"; }
+            } catch (err) { 
+                outDiv.innerText = "実行エラー:\n" + err.message; 
+                outDiv.style.color = "#ff6b6b"; 
+                stText.innerText = "システム: エラー"; 
+                triggerAiErrorAnalysis(err.message, code);
+            }
         }
 
         function stripCodeFences(text) { return text.replace(/```python\s*/gi, '').replace(/```\s*/g, '').trim(); }
 
-        async function callGeminiAPI(apiKey, model, prompt, sys, code) {
+        async function callGeminiAPI(apiKey, model, prompt, sys, code, strip = true) {
             const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ system_instruction: { parts: [{text: sys}] }, contents: [{ parts: [{ text: "現在のファイル内容:\n\n" + code + "\n\n指示:\n" + prompt }] }] })
             });
             const data = await res.json(); if (data.error) throw new Error(data.error.message);
-            return stripCodeFences(data.candidates[0].content.parts[0].text);
+            const text = data.candidates[0].content.parts[0].text;
+            return strip ? stripCodeFences(text) : text;
         }
 
-        async function callOpenAIAPI(apiKey, model, prompt, sys, code) {
+        async function callOpenAIAPI(apiKey, model, prompt, sys, code, strip = true) {
             const res = await fetch('https://api.openai.com/v1/chat/completions', {
                 method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
                 body: JSON.stringify({ model: model, messages: [{role: "system", content: sys}, {role: "user", content: "現在のファイル内容:\n\n" + code + "\n\n指示:\n" + prompt}] })
             });
             const data = await res.json(); if (data.error) throw new Error(data.error.message);
-            return stripCodeFences(data.choices[0].message.content);
+            const text = data.choices[0].message.content;
+            return strip ? stripCodeFences(text) : text;
         }
 
         async function askAI() {
@@ -981,6 +1006,133 @@
                 document.getElementById('status-text').innerText = "システム: AIエラー"; showToast("APIエラー: " + err.message);
             } finally { releaseWakeLock(); document.getElementById('btn-ai').disabled = false; }
         }
+
+        // --- AI エラー分析機能 ---
+        async function triggerAiErrorAnalysis(errorMsg, currentCode) {
+            if (!appSettings.apiKey) return;
+            const modal = document.getElementById('ai-fix-modal');
+            const content = document.getElementById('ai-fix-content');
+            modal.style.display = 'block';
+            content.innerHTML = "<div style='text-align:center; padding: 20px;'><span class='loader'></span> エラー原因を分析中...</div>";
+
+            const prompt = `以下のエラーが発生しました。エラー原因の分析と修正済みのコードを提示してください。修正済みコードは必ず \`\`\`python と \`\`\` で囲んでください。\n\n【エラー内容】\n${errorMsg}`;
+            const sysPrompt = "あなたは優秀なPythonエンジニアです。エラーの原因を簡潔に説明し、修正済みの完全なコードを提示してください。";
+
+            try {
+                let res; 
+                const activeModel = appSettings.customModel || appSettings.model;
+                if (activeModel.includes('gemini')) {
+                    res = await callGeminiAPI(appSettings.apiKey, activeModel, prompt, sysPrompt, currentCode, false);
+                } else if (activeModel.includes('gpt') || activeModel.includes('grok')) {
+                    res = await callOpenAIAPI(appSettings.apiKey, activeModel, prompt, sysPrompt, currentCode, false);
+                } else {
+                    res = "対応するAIモデルが選択されていません。";
+                }
+                renderAiFixResult(res);
+            } catch (e) {
+                content.innerHTML = `<span style="color:#ff6b6b;">分析エラー: ${e.message}</span>`;
+            }
+        }
+
+        function renderAiFixResult(markdownText) {
+            const content = document.getElementById('ai-fix-content');
+            content.innerHTML = '';
+            
+            const parts = markdownText.split(/(```[a-z]*\n[\s\S]*?\n```)/g);
+            
+            parts.forEach(part => {
+                if (part.startsWith('```')) {
+                    const codeMatch = part.match(/```[a-z]*\n([\s\S]*?)\n```/);
+                    const codeStr = codeMatch ? codeMatch[1] : '';
+                    
+                    const container = document.createElement('div');
+                    container.style.backgroundColor = '#1e1e1e';
+                    container.style.border = '1px solid #444';
+                    container.style.borderRadius = '4px';
+                    container.style.marginTop = '10px';
+                    container.style.marginBottom = '10px';
+                    container.style.overflow = 'hidden';
+
+                    const header = document.createElement('div');
+                    header.style.backgroundColor = '#333';
+                    header.style.padding = '5px 10px';
+                    header.style.display = 'flex';
+                    header.style.justifyContent = 'space-between';
+                    header.style.alignItems = 'center';
+
+                    const label = document.createElement('span');
+                    label.innerText = '修正案コード';
+                    label.style.fontWeight = 'bold';
+                    header.appendChild(label);
+
+                    const btnGroup = document.createElement('div');
+                    btnGroup.style.display = 'flex';
+                    btnGroup.style.gap = '5px';
+
+                    const copyBtn = document.createElement('button');
+                    copyBtn.innerText = '📋 コピー';
+                    copyBtn.style.padding = '4px 8px';
+                    copyBtn.style.fontSize = '12px';
+                    copyBtn.style.cursor = 'pointer';
+                    copyBtn.style.border = 'none';
+                    copyBtn.style.borderRadius = '4px';
+                    copyBtn.style.backgroundColor = '#444';
+                    copyBtn.style.color = '#fff';
+                    copyBtn.onclick = () => {
+                        navigator.clipboard.writeText(codeStr);
+                        showToast("コードをコピーしました");
+                    };
+                    btnGroup.appendChild(copyBtn);
+
+                    const applyBtn = document.createElement('button');
+                    applyBtn.innerText = '✨ 反映';
+                    applyBtn.style.padding = '4px 8px';
+                    applyBtn.style.fontSize = '12px';
+                    applyBtn.style.cursor = 'pointer';
+                    applyBtn.style.border = 'none';
+                    applyBtn.style.borderRadius = '4px';
+                    applyBtn.style.backgroundColor = 'var(--accent-blue)';
+                    applyBtn.style.color = '#fff';
+                    applyBtn.onclick = () => {
+                        if(codeEditorInstance) {
+                            codeEditorInstance.setValue(codeStr);
+                            saveCurrentFile();
+                            showToast("修正コードを反映しました");
+                            closeAiFixModal();
+                        }
+                    };
+                    btnGroup.appendChild(applyBtn);
+
+                    header.appendChild(btnGroup);
+                    container.appendChild(header);
+
+                    const pre = document.createElement('pre');
+                    pre.style.margin = '0';
+                    pre.style.padding = '10px';
+                    pre.style.overflowX = 'auto';
+                    pre.style.fontFamily = 'monospace';
+                    pre.style.whiteSpace = 'pre-wrap';
+                    pre.style.color = '#d4d4d4';
+                    pre.innerText = codeStr;
+                    container.appendChild(pre);
+
+                    content.appendChild(container);
+                } else {
+                    if(part.trim()) {
+                        const p = document.createElement('div');
+                        p.style.whiteSpace = 'pre-wrap';
+                        p.style.lineHeight = '1.4';
+                        p.innerText = part;
+                        content.appendChild(p);
+                    }
+                }
+            });
+        }
+
+        function closeAiFixModal() {
+            document.getElementById('ai-fix-modal').style.display = 'none';
+        }
+
     </script>
 </body>
 </html>
