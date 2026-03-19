@@ -1,84 +1,81 @@
 
 
-# 📱 Mobile Python & AI Editor
+# 📱 Mobile Python AI Editor
 
 [![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=flat&logo=html5&logoColor=white)](https://developer.mozilla.org/en-US/docs/Web/Guide/HTML/HTML5)
 [![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=flat&logo=javascript&logoColor=black)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
-[![Python](https://img.shields.io/badge/Python-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)
-[![Pyodide](https://img.shields.io/badge/Pyodide-WebAssembly-blue)](https://pyodide.org/)
-[![CodeMirror](https://img.shields.io/badge/CodeMirror-5.65-brightgreen)](https://codemirror.net/5/)
+[![Pyodide](https://img.shields.io/badge/Pyodide-3776AB?style=flat&logo=python&logoColor=white)](https://pyodide.org/)
+[![CodeMirror](https://img.shields.io/badge/CodeMirror-D33833?style=flat&logoColor=white)](https://codemirror.net/)
 
-**Mobile Python & AI Editor** は、スマートフォンなどのモバイル端末に最適化された、ブラウザだけで完結するPython開発環境です。サーバー構築は一切不要で、WebAssembly (Pyodide) を用いてブラウザ上でPythonコードを直接実行します。さらに、AIAPIと連携してコードの自動生成を強力にサポートします。
+**サーバー構築不要。ブラウザだけで完結する、AIアシスト搭載のモバイル向けPythonエディタ。**
+
+単一のHTMLファイルで動作し、[Pyodide](https://pyodide.org/) を利用してブラウザ上で直接Pythonコードを実行します。モバイル端末でのコーディングに最適化されたUIと、GeminiやChatGPTなどのAIによる強力なコード生成・エラー解析機能を備えています。
 
 ## ✨ 主な機能
 
-*   **⚡️ ブラウザでネイティブ実行 (Pyodide)**
-    *   サーバー不要。WebAssemblyを通じてブラウザ上で安全かつ高速にPythonコードを実行。
-    *   標準出力・標準エラー出力のエディタ内表示。
-    *   `micropip` を用いた外部パッケージの自動インストールに対応。
-*   **🤖 AIコーディングアシスタント**
-    *   Gemini, OpenAI (GPT-4o), Claude, Grokなど、各種生成AI APIに対応。
-    *   エディタ内に `# AI: 1から10まで足す関数` と書いてボタンを押すだけでコードを自動生成。
-*   **📱 モバイルファーストUI**
-    *   ソフトウェアキーボードでの入力負担を減らす**スニペットボタン**（括弧やクォーテーションの自動補完）。
-    *   エディタ長押しで起動する**フローティングキーワードメニュー**（`def`, `class`, `import` などの一発入力）。
-*   **📁 強力なファイルマネジメント**
-    *   IndexedDBによるブラウザ内での仮想ワークスペース保存。
-    *   **File System Access API (FSAA)** 対応。端末のローカルフォルダを直接開き、エディタとして使用可能。
-    *   ファイルツリー構造、タブ管理、ZIPでの一括エクスポート/インポート。
-*   **🛠️ 充実の開発ツール**
-    *   CodeMirrorによるシンタックスハイライト（Darculaテーマ）、オートコンプリート。
-    *   PEP8準拠のコード自動整形機能（内部で `black` を実行）。
-    *   環境変数 (`.env`) および `requirements.txt` の設定パネル。
+### 🚀 ブラウザ上でPythonを完全実行
+* **Pyodide搭載**: サーバーを介さず、ブラウザのWebAssembly上で安全かつ高速にPythonを実行します。
+* **自動パッケージ管理**: コード内の `import` を自動検知し、不足しているパッケージを `micropip` で自動インストールします（設定から事前指定も可能）。
 
-## 🚀 使い方
+### 🤖 強力なAIアシスタント機能
+* **コード自動生成**: 指示を入力してボタンを押すか、エディタ内で `# AI: 1から10まで足す関数` のようにコメントを書いて実行するだけでAIがコードを生成します。
+* **AI自動エラー分析**: コード実行時にエラーが発生すると、AIが即座に原因を分析。**修正済みの完全なコードを提示**し、ワンクリックでエディタに反映できます。
+* **複数モデル対応**: Gemini (1.5-Pro / 2.5-Flash), OpenAI (GPT-4o), Grok など、お好みのAPIキーを設定して利用可能です。
 
-### 1. 起動方法
-このプロジェクトは単一のHTMLファイルで構成されています。
-`index.html`（ファイル名）をブラウザで開くだけで、すぐにエディタが起動します。ネット上にホスティングするだけでPWA（プログレッシブウェブアプリ）としても動作します。
+### 📁 高度なファイル＆ワークスペース管理
+* **ローカルフォルダ連携 (FSAA)**: File System Access API対応ブラウザ（Chrome/Edgeなど）なら、端末内のフォルダを直接開いて編集・保存が可能です。
+* **仮想ファイルシステム**: ローカルフォルダを開かなくても、ブラウザ内 (IndexedDB) に複数のファイルやフォルダを作成し、タブで切り替えて編集できます。
+* **ZIPエクスポート**: プロジェクト全体をいつでもZIP形式でダウンロード・インポート可能です。
 
-### 2. Pythonコードの実行
-1. サイドバー（📁アイコン）を開き、`main.py` にコードを記述します。
-2. 画面下部の **「▶ 実行する」** ボタンをタップします。
-3. コードがPyodide上で実行され、結果が下部の黒いコンソール領域に出力されます。
+### 📱 モバイルに最適化されたエディタ (CodeMirror 5)
+* ダークテーマ (Darcula風) の美しいシンタックスハイライト。
+* スマホのソフトウェアキーボードで打ちにくい `()` `[]` `{}` `""` `:` `=` や、インデントをワンタップで入力できる補助ツールバー。
+* **長押しキーワードメニュー**: エディタ画面を長押しすると、`def`, `class`, `import`, `for` などの頻出キーワードを瞬時に入力できるフローティングメニューが表示されます。
 
-### 3. AIにコードを書かせる
-AI機能を使用するには、まず設定画面でAPIキーを登録してください。
+---
 
-**方法 A: 入力欄から指示**
-上部のプロンプト入力欄に「〇〇をするコードを書いて」と入力し、「✨ AIに頼む」ボタンを押します。
+## 🛠️ 使い方
 
-**方法 B: エディタ内にコメントで指示**
-エディタ内の任意の行に `# AI: 〇〇をする処理` と記述し、「✨ AIに頼む」ボタンを押すと、その行の下にAIが生成したコードが挿入されます。
+### セットアップ
+このエディタは**単一のHTMLファイル**で構成されています。
+リポジトリをクローンまたはダウンロードし、ブラウザで `index.html` を開くだけですぐに利用を開始できます。
 
-### 4. モバイル専用ジェスチャー
-*   **スワイプ**: 上部のツールバーやタブは横スクロールに対応しています。
-*   **長押し**: エディタ画面を長押し（0.5秒）すると、Pythonの予約語をワンタップで入力できるメニューが表示されます。
+### AIの設定
+1. 画面右上の ⚙️ (設定アイコン) をクリックします。
+2. 「AI設定」タブから利用したいモデルを選択し、該当するサービスの **APIキー** を入力します。
+   * *※ APIキーはブラウザのローカル(IndexedDB)にのみ安全に保存され、外部サーバーには送信されません。*
+3. 「設定を保存」をクリックします。
 
-## ⚙️ 設定 (Settings)
+### コードの実行とエラー修正
+1. 画面下部の **「▶ 実行する」** ボタンを押すと、コードが評価されコンソールに結果が出力されます。
+2. エラーが発生した場合、自動的に「🤖 AI エラー分析」モーダルが立ち上がります。
+3. AIが提示した「修正案コード」を確認し、**「✨ 反映」** ボタンを押すだけでコードが自動修正されます。
 
-画面右上の「⚙️」アイコンからシステム設定を開くことができます。すべての設定はブラウザのローカル（IndexedDB）に安全に保存されます。
+### 外部モジュール・環境変数の利用
+* **pip パッケージ**: 設定画面の「pip」タブに、利用したいパッケージ名を改行区切りで入力しておくと、実行前に自動インストールされます。
+* **環境変数 (`.env`)**: 設定画面の「.env」タブに `KEY=VALUE` の形式で入力すると、Pythonスクリプト実行時に `os.environ` に自動で読み込まれます。
 
-| タブ | 設定内容 |
-| :--- | :--- |
-| **AI設定** | 使用するAIモデルの選択、APIキーの入力、システムプロンプトのカスタマイズ。 |
-| **pip** | 実行前に自動でインストールしたいPythonパッケージを改行区切りで指定。 |
-| **.env** | `KEY=VALUE` 形式で記述すると、Python実行時に `os.environ` にロードされます。 |
-| **データ管理** | ローカルフォルダの読み込み(FSAA)、プロジェクトのZIP保存、読み込み。 |
+---
 
 ## 💻 技術スタック
 
-*   **フロントエンド**: HTML5, CSS3 (CSS Variables, Flexbox/Grid), Vanilla JavaScript
-*   **エディタエンジン**: [CodeMirror 5](https://codemirror.net/5/)
-*   **Pythonランタイム**: [Pyodide](https://pyodide.org/) (v0.25.0)
-*   **ファイル操作**: [JSZip](https://stuk.github.io/jszip/), File System Access API, IndexedDB
-*   **AI連携**: Fetch API を使用した各社 LLM REST API への直接通信
-
-## ⚠️ 注意事項
-
-*   **APIキーの管理**: 入力されたAPIキーはブラウザのローカルデータベース(IndexedDB)にのみ保存され、外部のサーバーには送信されません（設定したAIプロバイダーのAPIエンドポイントへは直接送信されます）。
-*   **ローカルフォルダへのアクセス (FSAA)**: File System Access APIは、Safariや一部のモバイルブラウザでは完全にサポートされていない場合があります。その場合は自動的に仮想ファイルシステムにフォールバックします。
-*   **初回実行時の通信**: PyodideコアやPythonパッケージ（`micropip`等）は初回実行時にCDNからダウンロードされるため、初期化にはインターネット接続と数秒の時間がかかります。
+* **フロントエンド**: HTML5, CSS3, Vanilla JavaScript
+* **エディタエンジン**: CodeMirror 5
+* **Python実行環境**: Pyodide (WebAssembly)
+* **ストレージ**: IndexedDB (設定・履歴・仮想ファイル保存)
+* **ファイルシステム連携**: File System Access API
+* **ZIP処理**: JSZip
 
 ---
-*Created for Mobile Coders & AI Enthusiasts.*
+
+## 🔒 セキュリティとプライバシー
+
+* 本アプリは**バックエンドサーバーを持たない完全なクライアントサイドアプリケーション**です。
+* 入力したコード、ファイルデータ、APIキーなどはすべてお使いのデバイスのブラウザ内（IndexedDB等）に保存されます。
+* AI機能を利用する際のみ、指定したAIプロバイダー（GoogleやOpenAIなど）の公式APIエンドポイントへ直接データが送信されます。
+
+---
+
+## 📄 ライセンス
+
+このプロジェクトは [MIT License](LICENSE) のもとで公開されています。自由に改変してご利用ください。
